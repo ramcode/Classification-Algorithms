@@ -23,9 +23,9 @@ public class RunKNearestNeighbour {
         double[][] matrix = KNN.readFeatureValues(path);
         //double[][] distanceMatrix = KNN.calculateDistanceMatrix();
 
-        /*Arrays.stream(matrix).forEach(x -> {
+        Arrays.stream(matrix).forEach(x -> {
             System.out.println(Arrays.toString(x));
-        });*/
+        });
 
 /*        Arrays.stream(distanceMatrix).forEach(x -> {
             System.out.println(Arrays.toString(x));
