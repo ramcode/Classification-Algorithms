@@ -16,6 +16,7 @@ public class DecisionTree {
     public double[][] dataMatrix;
     private int dataSampleCount;
     private int colCount;
+    private static final String NODE_LABEL = "ATTRIBUTE";
 
     public DecisionTree(int numOfFolds, String fileName) {
 
@@ -89,25 +90,46 @@ public class DecisionTree {
         return minGiniValue;
     }
 
-    public int findCandidateAttribute(double[][] trainData, List<Integer> remainingAttributes) {
+    public double[] findCandidateAttribute(double[][] trainData, List<Integer> remainingAttributes) {
         double minGiniValue = 0;
+        double[] candidateAttribute = new double[2];
         int candidateAttributeIndex = 0;
+        candidateAttribute[0] = candidateAttributeIndex;
+        candidateAttribute[1] = minGiniValue;
         for (Integer attriButeIndex : remainingAttributes) {
             double candidateGiniValue = findAttributeGiniValue(trainData, attriButeIndex);
             if (candidateGiniValue < minGiniValue) {
-                candidateAttributeIndex = attriButeIndex;
+                candidateAttribute[0] = attriButeIndex;
+                candidateAttribute[1] = candidateGiniValue;
             }
         }
-        return candidateAttributeIndex;
+        return candidateAttribute;
     }
 
 
-    public void runTreeInductionAlgo(double[][] trainData, List<Integer> remainingAttributes) {
+    public DecisionNode runTreeInductionAlgo(double[][] trainData, List<Integer> remainingAttributes) {
         if (checkStopCondition(trainData, remainingAttributes)) {
             String classLabel = findMajorityClassLabel(trainData);
             DecisionNode node = new DecisionNode(classLabel, true);
-            return ;
+            return node;
         }
+        double[] splitAttribute = findCandidateAttribute(trainData, remainingAttributes);
+        Double splitAttributeIdx = splitAttribute[0];
+        int splitAttributeIndex = splitAttributeIdx.intValue();
+        double splitAttributeCutValue = splitAttribute[1];
+        DecisionNode node = new DecisionNode(splitAttributeIndex+"", false);
+        node.setLeftEdgeLabel(splitAttributeCutValue+"");
+        node.setRightEdgeLabel(splitAttributeCutValue+"");
+        remainingAttributes.remove(splitAttributeIndex);
+
+
+
+
+
+
+
+
+
 
     }
 

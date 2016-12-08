@@ -1,5 +1,8 @@
 package com.ub.cse601.project3.util;
 
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,5 +41,13 @@ public class CrossValidation {
             testSplitStartIndex+= splitSize;
         }
         return splitList;
+    }
+
+    public Object[] generatePartitionsForSplit(double[][] trainData, int splitIndex){
+        Object[] partitions = new Object[2];
+        RealMatrix rm = MatrixUtils.createRealMatrix(trainData);
+        partitions[0] = rm.getSubMatrix(0,splitIndex, 0, trainData[0].length-1).getData();
+        partitions[1] = rm.getSubMatrix(splitIndex+1, trainData.length-1, 0, trainData[0].length).getData();
+        return partitions;
     }
 }
