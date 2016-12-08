@@ -116,7 +116,7 @@ public class DecisionTree {
         long classOneCount = Arrays.stream(trainData).filter(x -> x[colCount - 1] == 1).count();
         long classZeroCount = trainData.length - classOneCount;
         if (classOneCount == 0 || classZeroCount == 0) return true;
-
+        return false;
     }
 
     public String findMajorityClassLabel(double[][] trainData) {
