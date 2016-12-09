@@ -130,7 +130,7 @@ public class DecisionTree {
 
 
 
-
+        return node;
     }
 
     public boolean checkStopCondition(double[][] trainData, List<Integer> remainingAttributes) {
