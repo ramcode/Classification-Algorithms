@@ -11,7 +11,7 @@ public class RunKNearestNeighbour {
 
         if (fileName == null || fileName.length() == 0) {
 
-            fileName = "project3_dataset2.txt";
+            fileName = "project3_dataset1.txt";
             //fileName = "Test.txt";
 
         }

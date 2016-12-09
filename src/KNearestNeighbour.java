@@ -142,15 +142,15 @@ public class KNearestNeighbour {
     public void startCrossValidation(double[][] dataMatrix)
     {
 
-        int truePositive = 0;
-        int trueNegative = 0;
-        int falsePositive = 0;
-        int falseNegative = 0;
+        double truePositive = 0;
+        double trueNegative = 0;
+        double falsePositive = 0;
+        double falseNegative = 0;
 
-        int truePositiveWeight = 0;
-        int trueNegativeWeight = 0;
-        int falsePositiveWeight = 0;
-        int falseNegativeWeight = 0;
+        double truePositiveWeight = 0;
+        double trueNegativeWeight = 0;
+        double falsePositiveWeight = 0;
+        double falseNegativeWeight = 0;
 
         double totalAccuracy = 0;
         double totalPrecision = 0;
@@ -253,26 +253,26 @@ public class KNearestNeighbour {
             System.out.println("FP = " + falsePositive);
             System.out.println("FN = " + falseNegative);*/
 
-            totalAccuracy += ((double)(truePositive + trueNegative)/(truePositive + trueNegative + falsePositive + falseNegative));
-            totalPrecision += ((double)truePositive / (truePositive + falsePositive));
-            totalRecall += ((double)truePositive / (truePositive + falseNegative));
-            totalF1measure += ((double)2*truePositive / (2*truePositive + trueNegative + falsePositive));
+            totalAccuracy += ((truePositive + trueNegative)/(truePositive + trueNegative + falsePositive + falseNegative));
+            totalPrecision += ((truePositive) / (truePositive + falsePositive));
+            totalRecall += ((truePositive) / (truePositive + falseNegative));
+            totalF1measure += (((double)2*truePositive) / ((2*truePositive) + trueNegative + falsePositive));
 
-            totalAccuracyWeight += ((double)(truePositiveWeight + falseNegativeWeight)/(truePositiveWeight + trueNegativeWeight + falsePositiveWeight + falseNegativeWeight));
-            totalPrecisionWeight += ((double)truePositiveWeight / (truePositiveWeight + falsePositiveWeight));
-            totalRecallWeight += ((double)truePositiveWeight / (truePositiveWeight + falseNegativeWeight));
+            totalAccuracyWeight += ((truePositiveWeight + falseNegativeWeight)/(truePositiveWeight + trueNegativeWeight + falsePositiveWeight + falseNegativeWeight));
+            totalPrecisionWeight += (truePositiveWeight / (truePositiveWeight + falsePositiveWeight));
+            totalRecallWeight += (truePositiveWeight / (truePositiveWeight + falseNegativeWeight));
             totalF1measureWeight += ((double)2*truePositiveWeight / (2*truePositiveWeight + trueNegativeWeight + falsePositiveWeight));
         }
 
-        totalAccuracy = (double)totalAccuracy/numOfFolds;
-        totalPrecision = (double)totalPrecision/numOfFolds;
-        totalRecall = (double)totalRecall/numOfFolds;
-        totalF1measure = (double)totalF1measure/numOfFolds;
+        totalAccuracy = totalAccuracy/numOfFolds;
+        totalPrecision = totalPrecision/numOfFolds;
+        totalRecall = totalRecall/numOfFolds;
+        totalF1measure = totalF1measure/numOfFolds;
 
-        totalAccuracyWeight = (double)totalAccuracyWeight/numOfFolds;
-        totalPrecisionWeight = (double)totalPrecisionWeight/numOfFolds;
-        totalRecallWeight = (double)totalRecallWeight/numOfFolds;
-        totalF1measureWeight = (double)totalF1measureWeight/numOfFolds;
+        totalAccuracyWeight = totalAccuracyWeight/numOfFolds;
+        totalPrecisionWeight = totalPrecisionWeight/numOfFolds;
+        totalRecallWeight = totalRecallWeight/numOfFolds;
+        totalF1measureWeight = totalF1measureWeight/numOfFolds;
 
         System.out.println("Accuracy = " + totalAccuracy);
         System.out.println("Precision = " + totalPrecision);
@@ -302,10 +302,7 @@ public class KNearestNeighbour {
         //creating a templist of the testcase observation
         for(int m=0;m<distMatrix.length;m++)//not considering true label and testing set elements
         {
-            if(m<testSetStart || m>=(testSetStart+foldSize))
-            {
-                tempList.add(distMatrix[testSetIndex][m]);
-            }
+            tempList.add(distMatrix[testSetIndex][m]);
         }
 
 
@@ -317,15 +314,19 @@ public class KNearestNeighbour {
 
             for(int i=0;i<tempList.size();i++)
             {
-                if(tempList.get(i)<=minDist)
+                if (i<testSetStart || i>=(testSetStart+foldSize))
                 {
-                    minDist = tempList.get(i);
-                    minIndex = i;
+                    if(tempList.get(i)<=minDist)
+                    {
+                        minDist = tempList.get(i);
+                        minIndex = i;
+                    }
                 }
             }
 
             nearestIndices.add(minIndex);
             nearestDist.add(minDist);
+            //System.out.println("closest indices and dist ="+ (k+1)+" -- "+minIndex + " -- "+minDist);
 
             //setting the closest distance to max value
             tempList.set(minIndex,Double.MAX_VALUE);
