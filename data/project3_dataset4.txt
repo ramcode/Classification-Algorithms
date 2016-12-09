@@ -1,5 +1,3 @@
-rain    hot high    weak   0
-rain    cool high    weak   0
 sunny	hot	high	weak	0
 sunny	hot	high	strong	0
 overcast	hot	high	weak	1
