@@ -26,7 +26,7 @@ public class NaiveBayes {
         this.fileName = fileName;
         this.numOfFolds = numOfFolds;
         this.categoricalIndexStorer = new ArrayList<>();
-        this.map = new HashMap<String,Double>();
+        this.map = new HashMap<>();
 
     }
 
@@ -77,15 +77,15 @@ public class NaiveBayes {
                         string.append(singleDataSampleValue[j]).append(String.valueOf(j));
 
 
-                        if ( map.containsKey(string) ) {
+                        if ( map.containsKey(string.toString()) ) {
 
-                            dataMatrix[i][j] = map.get(singleDataSampleValue[j]);
+                            dataMatrix[i][j] = map.get(string.toString());
 
                         } else {
 
-                            count++;
                             map.put(string.toString(),count);
                             dataMatrix[i][j] = count;
+                            count++;
 
                         }
 
@@ -133,7 +133,7 @@ public class NaiveBayes {
 
         for ( int i = 0; i < trainingSet.length; i++ ) {
 
-            if ( trainingSet[i][trainingSet[0].length - 1] == 0.0 ) {
+            if ( trainingSet[i][trainingSet[0].length - 2] == 0.0 ) {
 
                 prior0Count++;
 
@@ -165,11 +165,11 @@ public class NaiveBayes {
             int index = categoricalIndexStorer.get(i);
 
             double[] columnValues = rm.getColumn(index);
-            double[] trueLabelColumn = rm.getColumn(trainingSet[0].length - 1);
+            double[] trueLabelColumn = rm.getColumn(trainingSet[0].length - 2);
 
             for ( int k = 0; k < columnValues.length; k++) {
 
-                if ( trueLabelColumn[k] == 0 ) {
+                if ( trueLabelColumn[k] == 0.0 ) {
 
                     posteriorMatrix[(int)columnValues[k]][0] +=  1;
 
@@ -203,12 +203,12 @@ public class NaiveBayes {
 
         for ( int i = 0; i < testSet.length; i++ ) {
 
-            double[] rowValues = rm.getRow(i);
+            double[] rowValues = testingSetRM.getRow(i);
 
             //-----------For Probability 0------------------------------------------
             double classPosteriorProbaility0 = prior0Prob; // get this checked
 
-            for ( int j = 0; j < rowValues.length - 2; i++ ) {
+            for ( int j = 0; j < rowValues.length - 2; j++ ) {
 
 
                 if ( categoricalIndexStorer.contains(j) ) {
@@ -262,7 +262,7 @@ public class NaiveBayes {
 
             double classPosteriorProbaility1 = prior1Prob; // get this checked
 
-            for ( int j = 0; j < rowValues.length - 2; i++ ) {
+            for ( int j = 0; j < rowValues.length - 2; j++ ) {
 
 
                 if ( categoricalIndexStorer.contains(j) ) {
