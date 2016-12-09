@@ -1,3 +1,4 @@
+import com.ub.cse601.project3.util.CrossValidation;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.stat.StatUtils;
@@ -6,9 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class NaiveBayes {
 
@@ -17,6 +16,7 @@ public class NaiveBayes {
     public double[][] dataMatrix;
     private int dataSampleCount;
     private List<Integer> categoricalIndexStorer;
+    private Map<String,Double> map;
 
 
 
@@ -25,6 +25,7 @@ public class NaiveBayes {
         this.fileName = fileName;
         this.numOfFolds = numOfFolds;
         this.categoricalIndexStorer = new ArrayList<>();
+        this.map = new HashMap<String,Double>();
 
     }
 
@@ -40,6 +41,7 @@ public class NaiveBayes {
             this.dataSampleCount = rows;
             int columns = dataSamples.get(0).trim().split("\\s+").length;
             dataMatrix = new double[rows][columns + 1];
+            double count = 0;
 
             String[] singleRecord = dataSamples.get(0).trim().split("\\s+");
             for ( int k = 0; k < columns; k++ ) {
@@ -70,11 +72,23 @@ public class NaiveBayes {
 
                     } catch (Exception e) {
 
-                        dataMatrix[i][j] = singleDataSampleValue[j].equals("Absent") ? 0.00 : 1.00;
+                        StringBuilder string = new StringBuilder();
+                        string.append(singleDataSampleValue[j]).append(String.valueOf(j));
+
+
+                        if ( map.containsKey(string) ) {
+
+                            dataMatrix[i][j] = map.get(singleDataSampleValue[j]);
+
+                        } else {
+
+                            count++;
+                            map.put(string.toString(),count);
+                            dataMatrix[i][j] = count;
+
+                        }
 
                     }
-                    //TODO: give decent numerical values to string data
-
 
                 }
             }
@@ -87,6 +101,34 @@ public class NaiveBayes {
         }
 
         return dataMatrix;
+    }
+
+    public void startNaiveBayes ( double[][] featureMatrix ) {
+
+        CrossValidation crossValidationObj = new CrossValidation( featureMatrix, numOfFolds );
+        List<Object[]> getSplitSetsList = crossValidationObj.generateKFoldSplit( featureMatrix, numOfFolds );
+
+        for ( Object singleObject[] : getSplitSetsList ) {
+
+            double[][] trainingSet = (double[][])singleObject[0];
+            double[][] testingSet = (double[][])singleObject[1];
+
+            performNaiveBayes( trainingSet, testingSet );
+
+        }
+
+    }
+
+    public void performNaiveBayes ( double[][] trainingSet, double[][] testSet ) {
+
+        double accuracy;
+        double precision;
+        double recall;
+        double f1Measure;
+
+        double[][] MLEMatrix 
+
+
     }
 
     public double[][] prepareFeatureMatrix ( double[][] dataMatrix ) {

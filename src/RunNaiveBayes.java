@@ -1,3 +1,5 @@
+import com.ub.cse601.project3.util.CrossValidation;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -22,7 +24,11 @@ public class RunNaiveBayes {
 
         NaiveBayes nbHandler = new NaiveBayes(fileName, foldNumber);
         double[][] featureMatrix = nbHandler.readFeatureValues(path);
-        double [][] normalizedMatrix = nbHandler.prepareFeatureMatrix(featureMatrix);
+        nbHandler.startNaiveBayes(featureMatrix);
+
+
+
+        //double [][] normalizedMatrix = nbHandler.prepareFeatureMatrix(featureMatrix);
         //List<NaiveBayes.MeanVariance>
         /*Arrays.stream(normalizedMatrix).forEach(x -> {
             System.out.println(Arrays.toString(x));
