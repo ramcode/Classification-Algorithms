@@ -45,11 +45,11 @@ public class CrossValidation {
         return splitList;
     }
 
-    public Object[] generatePartitionsForSplit(double[][] trainData, int splitIndex){
+    public static Object[] generatePartitionsForSplit(double[][] trainData, int splitIndex){
         Object[] partitions = new Object[2];
         RealMatrix rm = MatrixUtils.createRealMatrix(trainData);
         partitions[0] = rm.getSubMatrix(0,splitIndex, 0, trainData[0].length-1).getData();
-        partitions[1] = rm.getSubMatrix(splitIndex+1, trainData.length-1, 0, trainData[0].length).getData();
+        partitions[1] = rm.getSubMatrix(splitIndex+1, trainData.length-1, 0, trainData[0].length-1).getData();
         return partitions;
     }
 }

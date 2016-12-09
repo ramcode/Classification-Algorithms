@@ -42,7 +42,7 @@ public class DecisionTree {
             this.dataSampleCount = rows;
             int columns = dataSamples.get(0).trim().split("\\s+").length;
             this.colCount = columns;
-            dataMatrix = new double[rows][columns];
+            dataMatrix = new double[rows][columns + 1];
             for (int i = 0; i < rows; i++) {
                 String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
                 for (int j = 0; j < columns; j++) {
@@ -56,6 +56,7 @@ public class DecisionTree {
                         dataMatrix[i][j] = Double.parseDouble(singleDataSampleValue[j]);
                     }
                 }
+                dataMatrix[i][colCount] = -1;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -72,27 +73,30 @@ public class DecisionTree {
         double avgPrecision = 0, avgRecall = 0, avgFmeasure = 0, avgAccuracy = 0;
         for (int i = 0; i < kFoldSplits.size(); i++) {
             Object[] split = kFoldSplits.get(i);
-            AtomicInteger truePositive = new AtomicInteger(0), trueNegative =
-                    new AtomicInteger(0), falsePositive = new AtomicInteger(0), falseNegtive = new AtomicInteger(0);
+            double truePositive = 0, trueNegative = 0, falsePositive = 0, falseNegtive = 0;
             List<Integer> remainingAttributes = new ArrayList<>();
             double[][] trainData = (double[][]) split[0];
             double[][] testData = (double[][]) split[1];
-            IntStream.range(0, colCount).forEach(x -> remainingAttributes.add(x));
-            System.out.println("Creating decision tree for split:" + i + 1);
+            IntStream.range(0, colCount - 1).forEach(x -> remainingAttributes.add(x));
+            System.out.println("Creating decision tree for split:" + (i + 1) + "");
             DecisionNode decisionTree = createDecisionTree(trainData, remainingAttributes);
-            System.out.println("Validting decision tree on split:" + i + 1);
+            System.out.println("Validting decision tree on split:" + (i + 1) + "");
             validateTestData(decisionTree, testData);
-            Arrays.stream(testData).forEach(x -> {
-                if (x[colCount - 1] == 1 && x[colCount] == 1) truePositive.getAndIncrement();
-                else if (x[colCount - 1] == 1 && x[colCount] == 0) falseNegtive.getAndIncrement();
-                else if (x[colCount - 1] == 0 && x[colCount] == 1) falsePositive.getAndIncrement();
-                else if (x[colCount - 1] == 0 && x[colCount] == 0) trueNegative.getAndIncrement();
-            });
-            double dataSize = truePositive.intValue() + trueNegative.intValue() + falseNegtive.intValue() + falsePositive.intValue();
-            avgAccuracy += (truePositive.intValue() + trueNegative.intValue()) / dataSize;
-            avgPrecision += truePositive.intValue() / (truePositive.intValue() + falsePositive.intValue());
-            avgRecall += truePositive.intValue() / (truePositive.intValue() + falseNegtive.intValue());
-            avgFmeasure += 2 * avgRecall * avgPrecision / (avgRecall + avgPrecision);
+            for (int j = 0; j < testData.length; j++) {
+                if (testData[j][colCount - 1] == 1 && testData[j][colCount] == 1) truePositive++;
+                else if (testData[j][colCount - 1] == 1 && testData[j][colCount] == 0) falseNegtive++;
+                else if (testData[j][colCount - 1] == 0 && testData[j][colCount] == 1) falsePositive++;
+                else if (testData[j][colCount - 1] == 0 && testData[j][colCount] == 0) trueNegative++;
+            }
+            double dataSize = truePositive + trueNegative + falseNegtive + falsePositive;
+            double currAccuracy = (truePositive + trueNegative) / dataSize;
+            avgAccuracy += !Double.isNaN(currAccuracy) ? currAccuracy : 0;
+            double currPrecision = truePositive / (truePositive + falsePositive);
+            avgPrecision += !Double.isNaN(currPrecision) ? currPrecision : 0;
+            double currRecall = truePositive / (truePositive + falseNegtive);
+            avgRecall += !Double.isNaN(currRecall) ? currRecall : 0;
+            double currFmeasure = (2 * currRecall * currPrecision) / (currRecall + currPrecision);
+            avgFmeasure += !Double.isNaN(currFmeasure) ? currFmeasure : 0;
         }
         avgAccuracy = avgAccuracy / kFold;
         avgPrecision = avgPrecision / kFold;
@@ -111,15 +115,18 @@ public class DecisionTree {
                 int attributeIndex = root.attributeIndex;
                 String edgeLabel = root.featureLabel;
                 if (testData[i][attributeIndex] <= root.splitAttributeCutValue) {
-                    edgeLabel = " < " + root.splitAttributeCutValue;
+                    edgeLabel += " < " + root.splitAttributeCutValue;
                 } else {
-                    edgeLabel = " > " + root.splitAttributeCutValue;
+                    edgeLabel += " > " + root.splitAttributeCutValue;
                 }
                 root = root.children.get(edgeLabel);
             }
-            if (root.isLeaf) {
-                if (root.featureLabel.split("_")[1].equals("1")) testData[i][colCount] = 1;
-                else testData[i][colCount] = 0;
+            if (root != null && root.isLeaf) {
+                if (root.featureLabel.split("_")[1].equals("1")) {
+                    testData[i][colCount] = 1;
+                } else {
+                    testData[i][colCount] = 0;
+                }
             }
         }
     }
@@ -149,10 +156,10 @@ public class DecisionTree {
             } else {
                 candidateZeroCount += 1;
             }
-            int leftNodeCount = i + 1;
-            int rightNodeCount = trainData.length - (i + 1);
-            double giniLeftNode = 1 - Math.pow((double) candidateZeroCount / leftNodeCount, 2) - Math.pow((double) candidateOneCount / leftNodeCount, 2);
-            double giniRightNode = 1 - Math.pow((double) (classZeroCount - candidateZeroCount) / rightNodeCount, 2) - Math.pow((double) (classOneCount - candidateOneCount) / rightNodeCount, 2);
+            double leftNodeCount = i + 1;
+            double rightNodeCount = trainData.length - (i + 1);
+            double giniLeftNode = 1 - Math.pow((candidateZeroCount / leftNodeCount), 2) - Math.pow((candidateOneCount / leftNodeCount), 2);
+            double giniRightNode = 1 - Math.pow(((classZeroCount - candidateZeroCount) / rightNodeCount), 2) - Math.pow(((classOneCount - candidateOneCount) / rightNodeCount), 2);
             double giniSplit = (leftNodeCount / trainData.length) * giniLeftNode + (rightNodeCount / trainData.length) * giniRightNode;
             if (giniSplit < minGiniValue) {
                 minGiniValue = giniSplit;
@@ -198,7 +205,7 @@ public class DecisionTree {
         }
         double[] splitAttribute = findCandidateAttribute(trainData, remainingAttributes);
         Double splitAttributeIdx = splitAttribute[0];
-        int splitAttributeIndex = splitAttributeIdx.intValue();
+        Integer splitAttributeIndex = splitAttributeIdx.intValue();
         double splitAttributeCutValue = splitAttribute[1];
         int cutIndex = new Double(splitAttribute[2]).intValue();
         node.setLeaf(false);
@@ -210,7 +217,7 @@ public class DecisionTree {
         boolean left = true;
         for (Object partition : partitions) {
             double[][] partitionData = (double[][]) partition;
-            node.addNode(createDecisionTree(partitionData, remainingAttributes), node.featureLabel + (left ? " < " : " > " + splitAttributeCutValue));
+            node.addNode(createDecisionTree(partitionData, remainingAttributes), node.featureLabel + (left ? " < " : " > ") + splitAttributeCutValue);
             left = false;
         }
         return node;
