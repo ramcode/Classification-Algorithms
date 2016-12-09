@@ -27,12 +27,14 @@ public class CrossValidation {
             Object[] split = new Object[2];
             double[][] testData = new double[splitSize][dataSet[0].length];
             double[][] trainData = new double[dataSet.length-splitSize][dataSet[0].length];
-            for(int i=0; i<dataSet.length; i++){
+            for(int i=0,x=0,y=0; i<dataSet.length; i++){
                 if(i>=testSplitStartIndex && i<testSplitStartIndex+splitSize){
-                    testData[i] = dataSet[i];
+                    testData[x] = dataSet[i];
+                    x++;
                 }
                 else{
-                    trainData[i] = dataSet[i];
+                    trainData[y] = dataSet[i];
+                    y++;
                 }
             }
             split[0] = trainData;

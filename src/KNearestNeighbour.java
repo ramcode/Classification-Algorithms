@@ -1,3 +1,8 @@
+import com.ub.cse601.project3.util.CrossValidation;
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.stat.StatUtils;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -7,11 +12,12 @@ import java.util.*;
 public class KNearestNeighbour {
 
     private int numOfFolds;
+    private int kValue = 5;
     private String fileName;
     public double[][] dataMatrix;
     private int dataSampleCount;
 
-
+    //constructor for KNN
     public KNearestNeighbour ( int numOfFolds, String fileName ) {
 
         this.numOfFolds = numOfFolds;
@@ -19,7 +25,7 @@ public class KNearestNeighbour {
 
     }
 
-
+    //data matrix creation by reading the data present. Along with the true labels in the last column.
     public double[][] readFeatureValues ( String path ) {
 
         Path filePath = null;
@@ -31,11 +37,13 @@ public class KNearestNeighbour {
             int rows = dataSamples.size();
             this.dataSampleCount = rows;
             int columns = dataSamples.get(0).trim().split("\\s+").length;
-            dataMatrix = new double[rows][columns];
+            dataMatrix = new double[rows][columns+2];
 
             for ( int i = 0; i < rows; i++ ) {
 
                 String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
+                dataMatrix[i][columns]=-1;
+                dataMatrix[i][columns+1]=-1;
 
                 for ( int j = 0; j < columns; j++ ) {
 
@@ -59,6 +67,25 @@ public class KNearestNeighbour {
             }
 
 
+
+            /*RealMatrix rm = MatrixUtils.createRealMatrix(dataMatrix);
+            double[][] normalizedData = new double[dataMatrix.length][dataMatrix[0].length];
+            RealMatrix normalizedMatrix = MatrixUtils.createRealMatrix(normalizedData);
+
+            for (int i = 0; i < dataMatrix[0].length - 3; i++) {
+
+                System.out.println(Arrays.toString(rm.getColumn(i)));
+                normalizedMatrix.setColumn(i, StatUtils.normalize(rm.getColumn(i)));
+                System.out.println(Arrays.toString(StatUtils.normalize(rm.getColumn(i))));
+            }
+
+            normalizedMatrix.setColumn(dataMatrix[0].length - 3, rm.getColumn(dataMatrix[0].length - 3));
+            normalizedMatrix.setColumn(dataMatrix[0].length - 2, rm.getColumn(dataMatrix[0].length - 2));
+            normalizedMatrix.setColumn(dataMatrix[0].length - 1, rm.getColumn(dataMatrix[0].length - 1));
+
+            dataMatrix = normalizedMatrix.getData();*/
+
+
         } catch ( Exception e ) {
 
             e.printStackTrace();
@@ -66,8 +93,10 @@ public class KNearestNeighbour {
         }
 
         return dataMatrix;
+
     }
 
+    //calculation of the distance matrix for easy access later.
     public double[][] calculateDistanceMatrix () {
 
         double[][] distanceMatrix = null;
@@ -84,7 +113,7 @@ public class KNearestNeighbour {
                     double[] object2 = dataMatrix[j];
                     double squaredSum = 0;
 
-                    for ( int dim = 0; dim < object1.length - 1; dim++ ) {
+                    for ( int dim = 0; dim < object1.length - 3; dim++ ) {
 
                         squaredSum += Math.pow(object1[dim] - object2[dim], 2);
 
@@ -108,5 +137,253 @@ public class KNearestNeighbour {
 
     }
 
+
+    //Cross validation starts
+    public void startCrossValidation(double[][] dataMatrix)
+    {
+
+        int truePositive = 0;
+        int trueNegative = 0;
+        int falsePositive = 0;
+        int falseNegative = 0;
+
+        int truePositiveWeight = 0;
+        int trueNegativeWeight = 0;
+        int falsePositiveWeight = 0;
+        int falseNegativeWeight = 0;
+
+        double totalAccuracy = 0;
+        double totalPrecision = 0;
+        double totalRecall = 0;
+        double totalF1measure = 0;
+
+        double totalAccuracyWeight = 0;
+        double totalPrecisionWeight = 0;
+        double totalRecallWeight = 0;
+        double totalF1measureWeight = 0;
+
+        CrossValidation CVclass = new CrossValidation(dataMatrix,numOfFolds);
+        List<Object[]> splitSetsList = CVclass.generateKFoldSplit(dataMatrix,numOfFolds);
+
+        int foldSize = dataMatrix.length/numOfFolds;
+        int testSetStart = 0;
+
+        for(int i=0;i<numOfFolds;i++)
+        {
+            truePositive = 0;
+            trueNegative = 0;
+            falsePositive = 0;
+            falseNegative = 0;
+
+            truePositiveWeight = 0;
+            trueNegativeWeight = 0;
+            falsePositiveWeight = 0;
+            falseNegativeWeight = 0;
+
+            Object[] splitObject = splitSetsList.get(i);
+
+            double[][] trainSet = (double[][])splitObject[0];
+            double[][] testSet = (double[][])splitObject[1];
+
+            //TODO : HERE GOES THE NORMALIZATION CODE
+
+            double[][] distMatrix = calculateDistanceMatrix();
+
+
+            for(int j=testSetStart; j< (testSetStart+foldSize);j++)
+            {
+                //System.out.println("StartIndex =" + testSetStart);
+                KnnAlgorithm(distMatrix,j,foldSize, testSetStart);
+
+                //for count values
+                if(dataMatrix[j][dataMatrix[0].length-3] == dataMatrix[j][dataMatrix[0].length-2])
+                {
+                    if(dataMatrix[j][dataMatrix[0].length-3]==0)
+                    {
+                        trueNegative++;
+                    }
+                    else
+                    {
+                        truePositive++;
+                    }
+                }
+                else
+                {
+                    if(dataMatrix[j][dataMatrix[0].length-3]==0)
+                    {
+                        falsePositive++;
+                    }
+                    else
+                    {
+                        falseNegative++;
+                    }
+                }
+
+                //for weight values
+                if(dataMatrix[j][dataMatrix[0].length-3] == dataMatrix[j][dataMatrix[0].length-1])
+                {
+                    if(dataMatrix[j][dataMatrix[0].length-3]==0)
+                    {
+                        trueNegativeWeight++;
+                    }
+                    else
+                    {
+                        truePositiveWeight++;
+                    }
+                }
+                else
+                {
+                    if(dataMatrix[j][dataMatrix[0].length-3]==0)
+                    {
+                        falsePositiveWeight++;
+                    }
+                    else
+                    {
+                        falseNegativeWeight++;
+                    }
+                }
+
+            }
+
+            testSetStart = testSetStart+foldSize;
+
+            /*System.out.println("fold number = " + (i+1));
+            System.out.println("TP = " + truePositive);
+            System.out.println("TN = " + trueNegative);
+            System.out.println("FP = " + falsePositive);
+            System.out.println("FN = " + falseNegative);*/
+
+            totalAccuracy += ((double)(truePositive + trueNegative)/(truePositive + trueNegative + falsePositive + falseNegative));
+            totalPrecision += ((double)truePositive / (truePositive + falsePositive));
+            totalRecall += ((double)truePositive / (truePositive + falseNegative));
+            totalF1measure += ((double)2*truePositive / (2*truePositive + trueNegative + falsePositive));
+
+            totalAccuracyWeight += ((double)(truePositiveWeight + falseNegativeWeight)/(truePositiveWeight + trueNegativeWeight + falsePositiveWeight + falseNegativeWeight));
+            totalPrecisionWeight += ((double)truePositiveWeight / (truePositiveWeight + falsePositiveWeight));
+            totalRecallWeight += ((double)truePositiveWeight / (truePositiveWeight + falseNegativeWeight));
+            totalF1measureWeight += ((double)2*truePositiveWeight / (2*truePositiveWeight + trueNegativeWeight + falsePositiveWeight));
+        }
+
+        totalAccuracy = (double)totalAccuracy/numOfFolds;
+        totalPrecision = (double)totalPrecision/numOfFolds;
+        totalRecall = (double)totalRecall/numOfFolds;
+        totalF1measure = (double)totalF1measure/numOfFolds;
+
+        totalAccuracyWeight = (double)totalAccuracyWeight/numOfFolds;
+        totalPrecisionWeight = (double)totalPrecisionWeight/numOfFolds;
+        totalRecallWeight = (double)totalRecallWeight/numOfFolds;
+        totalF1measureWeight = (double)totalF1measureWeight/numOfFolds;
+
+        System.out.println("Accuracy = " + totalAccuracy);
+        System.out.println("Precision = " + totalPrecision);
+        System.out.println("Recall = " + totalRecall);
+        System.out.println("F1Measure = " + totalF1measure);
+
+        System.out.println("AccuracyWeight = " + totalAccuracyWeight);
+        System.out.println("PrecisionWeight = " + totalPrecisionWeight);
+        System.out.println("RecallWeight = " + totalRecallWeight);
+        System.out.println("F1MeasureWeight = " + totalF1measureWeight);
+
+    }
+
+
+    //algorithm for single test case in the test set from cross validation
+    public void KnnAlgorithm(double[][] distMatrix, int testSetIndex, int foldSize, int testSetStart)
+    {
+
+        int predValue = -1;
+        double predWeight = -1;
+
+        List<Integer> nearestIndices = new ArrayList<Integer>();
+        List<Double> nearestDist = new ArrayList<Double>();
+
+        List<Double> tempList = new ArrayList<Double>();
+
+        //creating a templist of the testcase observation
+        for(int m=0;m<distMatrix.length;m++)//not considering true label and testing set elements
+        {
+            if(m<testSetStart || m>=(testSetStart+foldSize))
+            {
+                tempList.add(distMatrix[testSetIndex][m]);
+            }
+        }
+
+
+        //creating a list of k nearest indices and their distances
+        for(int k = 0;k<kValue;k++)
+        {
+            int minIndex = -1;
+            double minDist = Double.MAX_VALUE;
+
+            for(int i=0;i<tempList.size();i++)
+            {
+                if(tempList.get(i)<=minDist)
+                {
+                    minDist = tempList.get(i);
+                    minIndex = i;
+                }
+            }
+
+            nearestIndices.add(minIndex);
+            nearestDist.add(minDist);
+
+            //setting the closest distance to max value
+            tempList.set(minIndex,Double.MAX_VALUE);
+        }
+
+        //checking the count of k nearest true labels
+        int class0 = 0;
+        int class1 = 0;
+        double weight0 = -1;
+        double weight1 = -1;
+
+        for(int k =0; k<kValue; k++)
+        {
+            class0 = 0;
+            class1 = 0;
+
+            if(dataMatrix[nearestIndices.get(k)][(dataMatrix[0].length)-3]==0)
+            {
+                class0++;
+                if(weight0==-1)
+                {
+                    weight0=0;
+                }
+                weight0 += ((double)1/nearestDist.get(k));
+            }
+            else
+            {
+                class1++;
+                if(weight1==-1)
+                {
+                    weight1=0;
+                }
+                weight1 += ((double)1/nearestDist.get(k));
+            }
+        }
+
+        //predicting test case label based on majority k votes
+        if(class0>class1)
+        {
+            predValue = 0;
+        }
+        else
+        {
+            predValue = 1;
+        }
+
+        if(weight0>weight1)
+        {
+            predWeight = 0;
+        }
+        else
+        {
+            predWeight = 1;
+        }
+
+        //System.out.println("pred value =" + predValue);
+        dataMatrix[testSetIndex][dataMatrix[0].length-2] = predValue;
+        dataMatrix[testSetIndex][dataMatrix[0].length-1] = predWeight;
+    }
 
 }

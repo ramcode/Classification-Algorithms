@@ -11,25 +11,32 @@ public class RunKNearestNeighbour {
 
         if (fileName == null || fileName.length() == 0) {
 
-            fileName = "project3_dataset1.txt";
+            fileName = "project3_dataset2.txt";
+            //fileName = "Test.txt";
 
         }
 
-        String path = "data/";
+        String path = "Classification-Algorithms/data/";
         System.out.println("Enter Cross Validation Fold Number: ");
         int foldNumber = Integer.valueOf(sc.nextLine());
         KNearestNeighbour KNN = new KNearestNeighbour(foldNumber, fileName);
 
         double[][] matrix = KNN.readFeatureValues(path);
-        //double[][] distanceMatrix = KNN.calculateDistanceMatrix();
 
+        double[][] distanceMatrix = KNN.calculateDistanceMatrix();
+
+        /*System.out.println("DataMatrix");
         Arrays.stream(matrix).forEach(x -> {
             System.out.println(Arrays.toString(x));
         });
 
-/*        Arrays.stream(distanceMatrix).forEach(x -> {
+        System.out.println("DistanceMatrix");
+        Arrays.stream(distanceMatrix).forEach(x -> {
             System.out.println(Arrays.toString(x));
         });*/
+
+        KNN.startCrossValidation(matrix);
+        //double[][] distanceMatrix = KNN.calculateDistanceMatrix();
 
 
     }
