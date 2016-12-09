@@ -28,8 +28,9 @@ public class RunKNearestNeighbour {
         /*System.out.println("DataMatrix");
         Arrays.stream(matrix).forEach(x -> {
             System.out.println(Arrays.toString(x));
-        });
+        });*/
 
+        /*
         System.out.println("DistanceMatrix");
         Arrays.stream(distanceMatrix).forEach(x -> {
             System.out.println(Arrays.toString(x));

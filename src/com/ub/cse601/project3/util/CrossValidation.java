@@ -60,7 +60,7 @@ public class CrossValidation {
         return partitions;
     }
 
-    public double[][] getNormalizedMatrix(double[][] dataMatrix, List<Integer> ignoreList) {
+    public double[][] getNormalizedMatrix(double[][] dataMatrix, List<Integer> ignoreList, int flag) {
         RealMatrix rm = MatrixUtils.createRealMatrix(dataMatrix);
         double[][] normalizedData = new double[dataMatrix.length][dataMatrix[0].length];
         RealMatrix normalizedMatrix = MatrixUtils.createRealMatrix(normalizedData);
@@ -83,6 +83,11 @@ public class CrossValidation {
             }
             normalizedMatrix.setColumn(dataMatrix[0].length - 2, rm.getColumn(dataMatrix[0].length - 2));
             normalizedMatrix.setColumn(dataMatrix[0].length - 1, rm.getColumn(dataMatrix[0].length - 1));
+            if (flag==1)
+            {
+                normalizedMatrix.setColumn(dataMatrix[0].length - 3, rm.getColumn(dataMatrix[0].length - 3));
+            }
+
         }
         return normalizedMatrix.getData();
     }

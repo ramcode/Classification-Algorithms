@@ -16,17 +16,21 @@ public class KNearestNeighbour {
     private String fileName;
     public double[][] dataMatrix;
     private int dataSampleCount;
+    private List<Integer> categoricalIndexStorer;
+    private Map<String, Double> map;
 
     //constructor for KNN
     public KNearestNeighbour ( int numOfFolds, String fileName ) {
 
         this.numOfFolds = numOfFolds;
         this.fileName = fileName;
+        this.categoricalIndexStorer = new ArrayList<>();
+        this.map = new HashMap<String, Double>();
 
     }
 
-    //data matrix creation by reading the data present. Along with the true labels in the last column.
-    public double[][] readFeatureValues ( String path ) {
+
+    public double[][] readFeatureValues(String path) {
 
         Path filePath = null;
 
@@ -37,60 +41,73 @@ public class KNearestNeighbour {
             int rows = dataSamples.size();
             this.dataSampleCount = rows;
             int columns = dataSamples.get(0).trim().split("\\s+").length;
-            dataMatrix = new double[rows][columns+2];
+            dataMatrix = new double[rows][columns + 2];
+            double count = 0;
 
-            for ( int i = 0; i < rows; i++ ) {
+            String[] singleRecord = dataSamples.get(0).trim().split("\\s+");
+            for (int k = 0; k < columns; k++) {
 
-                String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
-                dataMatrix[i][columns]=-1;
-                dataMatrix[i][columns+1]=-1;
+                try {
 
-                for ( int j = 0; j < columns; j++ ) {
+                    Double.parseDouble(singleRecord[k]);
 
-                    //TODO: give decent numerical values to string data
-                    if ( singleDataSampleValue[j].equals("Absent") ) {
+                } catch (Exception e) {
 
-                        dataMatrix[i][j] = 0.00;
-
-                    } else if ( singleDataSampleValue[j].equals("Present") ) {
-
-                        dataMatrix[i][j] = 1.00;
-
-                    } else {
-
-                        dataMatrix[i][j] = Double.parseDouble(singleDataSampleValue[j]);
-
-                    }
+                    categoricalIndexStorer.add(k);
 
                 }
 
             }
 
+            for (int i = 0; i < rows; i++) {
+
+                String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
+
+                dataMatrix[i][columns] = -1;
+                dataMatrix[i][columns+1]= -1;
+
+                for (int j = 0; j < columns; j++) {
+
+                    try {
+
+                        dataMatrix[i][j] = Double.parseDouble(singleDataSampleValue[j]);
+
+                    } catch (Exception e) {
+
+                        StringBuilder string = new StringBuilder();
+                        string.append(singleDataSampleValue[j]).append(String.valueOf(j));
 
 
-            /*RealMatrix rm = MatrixUtils.createRealMatrix(dataMatrix);
-            double[][] normalizedData = new double[dataMatrix.length][dataMatrix[0].length];
-            RealMatrix normalizedMatrix = MatrixUtils.createRealMatrix(normalizedData);
+                        if (map.containsKey(string)) {
 
-            for (int i = 0; i < dataMatrix[0].length - 3; i++) {
+                            dataMatrix[i][j] = map.get(singleDataSampleValue[j]);
 
-                System.out.println(Arrays.toString(rm.getColumn(i)));
-                normalizedMatrix.setColumn(i, StatUtils.normalize(rm.getColumn(i)));
-                System.out.println(Arrays.toString(StatUtils.normalize(rm.getColumn(i))));
+                        } else {
+
+                            count++;
+                            map.put(string.toString(), count);
+                            dataMatrix[i][j] = count;
+
+                        }
+
+                    }
+
+                }
             }
 
-            normalizedMatrix.setColumn(dataMatrix[0].length - 3, rm.getColumn(dataMatrix[0].length - 3));
-            normalizedMatrix.setColumn(dataMatrix[0].length - 2, rm.getColumn(dataMatrix[0].length - 2));
-            normalizedMatrix.setColumn(dataMatrix[0].length - 1, rm.getColumn(dataMatrix[0].length - 1));
 
-            dataMatrix = normalizedMatrix.getData();*/
-
-
-        } catch ( Exception e ) {
+        } catch (Exception e) {
 
             e.printStackTrace();
 
         }
+
+        List<Integer> ignoreList = categoricalIndexStorer;
+        ignoreList.add(dataMatrix[0].length-3);
+
+        int flag = 1;
+        CrossValidation CV = new CrossValidation(dataMatrix,numOfFolds);
+        dataMatrix = CV.getNormalizedMatrix(dataMatrix,ignoreList, flag);
 
         return dataMatrix;
 

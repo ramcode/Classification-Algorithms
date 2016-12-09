@@ -61,7 +61,7 @@ public class DecisionTree {
             e.printStackTrace();
         }
         CrossValidation cv = new CrossValidation();
-        dataMatrix = cv.getNormalizedMatrix(dataMatrix, ignoreList);
+        dataMatrix = cv.getNormalizedMatrix(dataMatrix, ignoreList,0);
         return dataMatrix;
     }
 
