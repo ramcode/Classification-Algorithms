@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -35,6 +36,7 @@ public class DecisionTree {
 
     public double[][] readDataSet(String path) {
         Path filePath = null;
+        List<Integer> ignoreList = new ArrayList<Integer>();
         try {
             filePath = Paths.get(path, fileName);
             List<String> dataSamples = Files.readAllLines(filePath, StandardCharsets.UTF_8);
@@ -47,13 +49,10 @@ public class DecisionTree {
                 String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
                 for (int j = 0; j < columns; j++) {
                     //TODO: give decent numerical values to string data
-                    if (singleDataSampleValue[j].equals("Absent")) {
-                        dataMatrix[i][j] = 0.00;
-
-                    } else if (singleDataSampleValue[j].equals("Present")) {
-                        dataMatrix[i][j] = 1.00;
-                    } else {
+                    try {
                         dataMatrix[i][j] = Double.parseDouble(singleDataSampleValue[j]);
+                    } catch (Exception ex) {
+                        ignoreList.add(j);
                     }
                 }
                 dataMatrix[i][colCount] = -1;
@@ -61,6 +60,8 @@ public class DecisionTree {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        CrossValidation cv = new CrossValidation();
+        dataMatrix = cv.getNormalizedMatrix(dataMatrix, ignoreList);
         return dataMatrix;
     }
 
@@ -79,7 +80,8 @@ public class DecisionTree {
             double[][] testData = (double[][]) split[1];
             IntStream.range(0, colCount - 1).forEach(x -> remainingAttributes.add(x));
             System.out.println("Creating decision tree for split:" + (i + 1) + "");
-            DecisionNode decisionTree = createDecisionTree(trainData, remainingAttributes);
+            double[] candidateAttribute = findCandidateAttribute(trainData, remainingAttributes);
+            DecisionNode decisionTree = createDecisionTree(trainData, remainingAttributes, candidateAttribute);
             System.out.println("Validting decision tree on split:" + (i + 1) + "");
             validateTestData(decisionTree, testData);
             for (int j = 0; j < testData.length; j++) {
@@ -193,14 +195,13 @@ public class DecisionTree {
     }
 
 
-    public DecisionNode createDecisionTree(double[][] trainData, List<Integer> remainingAttributes) {
+    public DecisionNode createDecisionTree(double[][] trainData, List<Integer> remainingAttributes, double[] candidateAttribute) {
         DecisionNode node = new DecisionNode();
-        if (checkStopCondition(trainData, remainingAttributes)) {
-            int attributeIndex = findMajorityClassLabel(trainData);
-            String classLabel = String.valueOf(attributeIndex);
+        if (checkStopCondition(trainData, remainingAttributes, candidateAttribute)) {
+            int classValue = findMajorityClassLabel(trainData);
+            String classLabel = String.valueOf(classValue);
             node.setFeatureLabel(classLabel.equals("1") ? CLASS_LABEL_YES : CLASS_LABEL_NO);
             node.setLeaf(true);
-            node.attributeIndex = attributeIndex;
             return node;
         }
         double[] splitAttribute = findCandidateAttribute(trainData, remainingAttributes);
@@ -217,17 +218,21 @@ public class DecisionTree {
         boolean left = true;
         for (Object partition : partitions) {
             double[][] partitionData = (double[][]) partition;
-            node.addNode(createDecisionTree(partitionData, remainingAttributes), node.featureLabel + (left ? " < " : " > ") + splitAttributeCutValue);
+            node.addNode(createDecisionTree(partitionData, remainingAttributes, splitAttribute), node.featureLabel + (left ? " < " : " > ") + splitAttributeCutValue);
             left = false;
         }
         return node;
     }
 
-    public boolean checkStopCondition(double[][] trainData, List<Integer> remainingAttributes) {
+    public boolean checkStopCondition(double[][] trainData, List<Integer> remainingAttributes, double[] candidateAttribute) {
         if (remainingAttributes.size() == 0) return true;
+        int attributeIndex = new Double(candidateAttribute[0]).intValue();
         long classOneCount = Arrays.stream(trainData).filter(x -> x[colCount - 1] == 1).count();
         long classZeroCount = trainData.length - classOneCount;
         if (classOneCount == 0 || classZeroCount == 0) return true;
+        long attrCount = Arrays.stream(trainData).map(x -> x[attributeIndex]).distinct().count();
+        ;
+        if (attrCount == 1) return true;
         return false;
     }
 
