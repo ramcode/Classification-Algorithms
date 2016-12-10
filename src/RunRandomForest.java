@@ -23,11 +23,23 @@ public class RunRandomForest {
         int trees = Integer.valueOf(sc.nextLine());
         System.out.println("Enter random value of attributes to select: ");
         int randAttrVal = Integer.valueOf(sc.nextLine());
-        RandomForest randomForest = new RandomForest(trees, fileName, randAttrVal);
-        double[][] dataMatrix = randomForest.readDataSet(path);
-        List<DecisionNode> randomTrees = randomForest.runTreeInductionAlgo(dataMatrix, trees, randAttrVal);
-        randomForest.validateRandomForest(dataMatrix, randomTrees);
+        System.out.println("Enter File name of testing data set: ");
+        String testFileName = sc.nextLine();
 
+        if (testFileName == null || testFileName.length() == 0) {
+
+            testFileName = fileName;
+        }
+
+        RandomForest randomForest = new RandomForest(trees, fileName, randAttrVal);
+        double[][] dataMatrix = randomForest.readDataSet(path, fileName);
+        double[][] testMatrix = randomForest.readDataSet(path, testFileName);
+        List<DecisionNode> randomTrees = randomForest.runTreeInductionAlgo(dataMatrix, trees, randAttrVal);
+        if (testFileName != null && testFileName.length() > 0) {
+            randomForest.validateRandomForest(testMatrix, randomTrees);
+        } else {
+            randomForest.validateRandomForest(dataMatrix, randomTrees);
+        }
         //double[][] distanceMatrix = KNN.calculateDistanceMatrix();
 
         /*Arrays.stream(matrix).forEach(x -> {

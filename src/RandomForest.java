@@ -24,6 +24,9 @@ public class RandomForest {
     public static final String CLASS_LABEL_YES = "CLASS_1";
     public static final String NODE_LABEL = "ATTRIBUTE";
     private int randAttrVal;
+    Map<Double, String> reverseMap = null;
+    List<Integer> ignoreList = null;
+    Map<String, Double> map = null;
 
     public RandomForest(int numOfFolds, String fileName, int randAttrVal) {
 
@@ -32,9 +35,9 @@ public class RandomForest {
         this.randAttrVal = randAttrVal;
     }
 
-    public double[][] readDataSet(String path) {
+    public double[][] readDataSet(String path, String fileName){
         Path filePath = null;
-        List<Integer> ignoreList = new ArrayList<Integer>();
+        ignoreList = new ArrayList<Integer>();
         try {
             filePath = Paths.get(path, fileName);
             List<String> dataSamples = Files.readAllLines(filePath, StandardCharsets.UTF_8);
@@ -44,7 +47,22 @@ public class RandomForest {
             this.colCount = columns;
             dataMatrix = new double[rows][columns + 1];
             double count = 0;
-            Map<String, Double> map = new HashMap<String, Double>();
+            map = new HashMap<String, Double>();
+            reverseMap = new HashMap<Double, String>();
+            String[] singleRecord = dataSamples.get(0).trim().split("\\s+");
+            for (int k = 0; k < columns; k++) {
+
+                try {
+
+                    Double.parseDouble(singleRecord[k]);
+
+                } catch (Exception e) {
+
+                    ignoreList.add(k);
+
+                }
+
+            }
             for (int i = 0; i < rows; i++) {
                 String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
                 for (int j = 0; j < columns; j++) {
@@ -52,15 +70,14 @@ public class RandomForest {
                     try {
                         dataMatrix[i][j] = Double.parseDouble(singleDataSampleValue[j]);
                     } catch (Exception ex) {
-                        ignoreList.add(j);
-                        StringBuilder string = new StringBuilder();
-                        string.append(singleDataSampleValue[j]).append(String.valueOf(j));
-                        if (map.containsKey(string)) {
-                            dataMatrix[i][j] = map.get(singleDataSampleValue[j]);
+                        String key = String.valueOf(j) + "_" + singleDataSampleValue[j];
+                        if (map.containsKey(key)) {
+                            dataMatrix[i][j] = map.get(key);
                         } else {
-                            count++;
-                            map.put(string.toString(), count);
+                            map.put(key, count);
                             dataMatrix[i][j] = count;
+                            reverseMap.put(count, singleDataSampleValue[j]);
+                            count++;
                         }
                     }
                 }
@@ -70,7 +87,9 @@ public class RandomForest {
             e.printStackTrace();
         }
         CrossValidation cv = new CrossValidation();
-        dataMatrix = cv.getNormalizedMatrix(dataMatrix, ignoreList, 0);
+        if (ignoreList.size() != colCount - 1) {
+            dataMatrix = cv.getNormalizedMatrix(dataMatrix, ignoreList, 0);
+        }
         return dataMatrix;
     }
 
@@ -142,10 +161,18 @@ public class RandomForest {
                     System.out.println(root.featureLabel);
                     int attributeIndex = root.attributeIndex;
                     String edgeLabel = root.featureLabel;
-                    if (testData[i][attributeIndex] <= root.splitAttributeCutValue) {
-                        edgeLabel += " < " + root.splitAttributeCutValue;
+                    if (ignoreList.contains(attributeIndex)) {
+                        if (reverseMap.get(testData[i][attributeIndex]).equals(root.splitCatValue)) {
+                            edgeLabel += " = " + root.splitCatValue;
+                        } else {
+                            edgeLabel += " != " + root.splitCatValue;
+                        }
                     } else {
-                        edgeLabel += " > " + root.splitAttributeCutValue;
+                        if (testData[i][attributeIndex] <= root.splitAttributeCutValue) {
+                            edgeLabel += " < " + root.splitAttributeCutValue;
+                        } else {
+                            edgeLabel += " > " + root.splitAttributeCutValue;
+                        }
                     }
                     root = root.children.get(edgeLabel);
                 }
@@ -206,7 +233,7 @@ public class RandomForest {
         long classZeroCount = trainData.length - classOneCount;
         int candidateZeroCount = 0;
         int candidateOneCount = 0;
-        double candidateCut = 0;
+        double candidateCutValue = 0;
         for (int i = 0; i < trainData.length - 1; i++) {
             if (trainData[i][colCount - 1] == 1) {
                 candidateOneCount += 1;
@@ -220,11 +247,11 @@ public class RandomForest {
             double giniSplit = (leftNodeCount / trainData.length) * giniLeftNode + (rightNodeCount / trainData.length) * giniRightNode;
             if (giniSplit < minGiniValue) {
                 minGiniValue = giniSplit;
-                candidateCut = i;
+                candidateCutValue = trainData[i][attributeIndex];
             }
 
         }
-        attributeGiniValue[0] = candidateCut;
+        attributeGiniValue[0] = candidateCutValue;
         attributeGiniValue[1] = minGiniValue;
         return attributeGiniValue;
     }
@@ -233,19 +260,19 @@ public class RandomForest {
         double minGiniValue = Double.MAX_VALUE;
         double[] candidateAttribute = new double[3];
         int candidateAttributeIndex = 0;
-        int cutIndex = 0;
+        double cutIndexValue = 0;
         for (Integer attributeIndex : remainingAttributes) {
             double[] candidateCurr = findAttributeGiniValue(trainData, attributeIndex);
             double candidateGiniValue = candidateCurr[1];
             if (candidateGiniValue < minGiniValue) {
                 candidateAttributeIndex = attributeIndex;
                 minGiniValue = candidateGiniValue;
-                cutIndex = new Double(candidateCurr[0]).intValue();
+                cutIndexValue = candidateCurr[0];
             }
         }
         candidateAttribute[0] = candidateAttributeIndex;
         candidateAttribute[1] = minGiniValue;
-        candidateAttribute[2] = cutIndex;
+        candidateAttribute[2] = cutIndexValue;
         return candidateAttribute;
     }
 
@@ -263,17 +290,27 @@ public class RandomForest {
         Double splitAttributeIdx = candidateAttribute[0];
         Integer splitAttributeIndex = splitAttributeIdx.intValue();
         double splitAttributeCutValue = candidateAttribute[1];
-        int cutIndex = new Double(candidateAttribute[2]).intValue();
+        double cutIndexValue = candidateAttribute[2];
         node.setLeaf(false);
-        node.setFeatureLabel(NODE_LABEL + "_" + splitAttributeIndex);
-        node.attributeIndex = splitAttributeIndex;
-        node.splitAttributeCutValue = splitAttributeCutValue;
+        if (ignoreList.contains(splitAttributeIndex)) {
+            node.setFeatureLabel(NODE_LABEL + "_" + splitAttributeIndex);
+            node.attributeIndex = splitAttributeIndex;
+            node.splitCatValue = reverseMap.get(cutIndexValue);
+        } else {
+            node.setFeatureLabel(NODE_LABEL + "_" + splitAttributeIndex);
+            node.attributeIndex = splitAttributeIndex;
+            node.splitAttributeCutValue = cutIndexValue;
+        }
         remainingAttributes.remove(splitAttributeIndex);
-        Object[] partitions = CrossValidation.generatePartitionsForSplit(trainData, cutIndex, splitAttributeIndex);
+        Object[] partitions = CrossValidation.generatePartitionsForSplit(trainData, cutIndexValue, splitAttributeIndex);
         boolean left = true;
         for (Object partition : partitions) {
             double[][] partitionData = (double[][]) partition;
-            node.addNode(createDecisionTree(partitionData, remainingAttributes), node.featureLabel + (left ? " < " : " > ") + splitAttributeCutValue);
+            if (ignoreList.contains(node.attributeIndex)) {
+                node.addNode(createDecisionTree(partitionData, remainingAttributes), node.featureLabel + (left ? " = " : " != ") + node.splitCatValue);
+            } else {
+                node.addNode(createDecisionTree(partitionData, remainingAttributes), node.featureLabel + (left ? " < " : " > ") + node.splitAttributeCutValue);
+            }
             left = false;
         }
         return node;
@@ -309,6 +346,13 @@ public class RandomForest {
         for (Map.Entry<String, DecisionNode> entry : root.children.entrySet()) {
             printTree(entry.getValue(), left ? "" : tab);
             left = false;
+        }
+    }
+
+    private void print(DecisionNode node, String prefix, boolean isTail, String edgeLabel) {
+        System.out.println(prefix + (isTail ? edgeLabel + "└── " : edgeLabel + "├── ") + node.featureLabel);
+        for (Map.Entry<String, DecisionNode> entry : node.children.entrySet()) {
+            print(entry.getValue(), prefix + (isTail ? "    " : "│   "), false, entry.getKey());
         }
     }
 }
