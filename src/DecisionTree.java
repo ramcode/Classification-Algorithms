@@ -87,7 +87,7 @@ public class DecisionTree {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        Arrays.stream(dataMatrix).forEach(x-> System.out.println(Arrays.toString(x)));
+        //Arrays.stream(dataMatrix).forEach(x-> System.out.println(Arrays.toString(x)));
         CrossValidation cv = new CrossValidation();
         if(ignoreList.size()!=colCount-1) {
             dataMatrix = cv.getNormalizedMatrix(dataMatrix, ignoreList, 0);
