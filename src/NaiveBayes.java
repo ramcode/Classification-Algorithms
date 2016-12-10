@@ -17,19 +17,20 @@ public class NaiveBayes {
     public double[][] dataMatrix;
     private int dataSampleCount;
     private List<Integer> categoricalIndexStorer;
-    private Map<String, Double> map;
+    private Map<String,Double> map;
 
 
-    public NaiveBayes(String fileName, int numOfFolds) {
+
+    public NaiveBayes ( String fileName, int numOfFolds ) {
 
         this.fileName = fileName;
         this.numOfFolds = numOfFolds;
         this.categoricalIndexStorer = new ArrayList<>();
-        this.map = new HashMap<String, Double>();
+        this.map = new HashMap<>();
 
     }
 
-    public double[][] readFeatureValues(String path) {
+    public double[][] readFeatureValues ( String path ) {
 
         Path filePath = null;
 
@@ -44,13 +45,13 @@ public class NaiveBayes {
             double count = 0;
 
             String[] singleRecord = dataSamples.get(0).trim().split("\\s+");
-            for (int k = 0; k < columns; k++) {
+            for ( int k = 0; k < columns; k++ ) {
 
                 try {
 
                     Double.parseDouble(singleRecord[k]);
 
-                } catch (Exception e) {
+                } catch ( Exception e ) {
 
                     categoricalIndexStorer.add(k);
 
@@ -58,7 +59,7 @@ public class NaiveBayes {
 
             }
 
-            for (int i = 0; i < rows; i++) {
+            for ( int i = 0; i < rows; i++ ) {
 
                 String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
 
@@ -76,15 +77,15 @@ public class NaiveBayes {
                         string.append(singleDataSampleValue[j]).append(String.valueOf(j));
 
 
-                        if (map.containsKey(string)) {
+                        if ( map.containsKey(string.toString()) ) {
 
-                            dataMatrix[i][j] = map.get(singleDataSampleValue[j]);
+                            dataMatrix[i][j] = map.get(string.toString());
 
                         } else {
 
-                            count++;
-                            map.put(string.toString(), count);
+                            map.put(string.toString(),count);
                             dataMatrix[i][j] = count;
+                            count++;
 
                         }
 
@@ -94,7 +95,7 @@ public class NaiveBayes {
             }
 
 
-        } catch (Exception e) {
+        } catch ( Exception e ) {
 
             e.printStackTrace();
 
@@ -103,36 +104,114 @@ public class NaiveBayes {
         return dataMatrix;
     }
 
-    public void startNaiveBayes(double[][] featureMatrix) {
+    public void startNaiveBayes ( double[][] featureMatrix ) {
 
-        CrossValidation crossValidationObj = new CrossValidation(featureMatrix, numOfFolds);
-        List<Object[]> getSplitSetsList = crossValidationObj.generateKFoldSplit(featureMatrix, numOfFolds);
+        CrossValidation crossValidationObj = new CrossValidation( featureMatrix, numOfFolds );
+        List<Object[]> getSplitSetsList = crossValidationObj.generateKFoldSplit( featureMatrix, numOfFolds );
 
-        for (Object singleObject[] : getSplitSetsList) {
+        int truePositive = 0;
+        int trueNegative = 0;
+        int falsePositive = 0;
+        int falseNegative = 0;
 
-            double[][] trainingSet = (double[][]) singleObject[0];
-            double[][] testingSet = (double[][]) singleObject[1];
+        double totalAccuracy = 0;
+        double totalPrecision = 0;
+        double totalRecall = 0;
+        double totalF1measure = 0;
 
-            performNaiveBayes(trainingSet, testingSet);
+
+        for ( Object singleObject[] : getSplitSetsList ) {
+
+            double[][] trainingSet = (double[][])singleObject[0];
+            double[][] testingSet = (double[][])singleObject[1];
+
+            double[][] result = performNaiveBayes( trainingSet, testingSet );
+
+            int[] validationData = performCrossValidation ( result );
+            //Arrays.stream(result).forEach( x -> System.out.println(Arrays.toString(x)));
+
+            truePositive += validationData[0];
+            trueNegative += validationData[1];
+            falsePositive += validationData[2];
+            falseNegative += validationData[3];
 
         }
 
+        totalAccuracy += ((double)(truePositive + trueNegative)/(truePositive + trueNegative + falsePositive + falseNegative));
+        totalPrecision += ((double)(truePositive) / (truePositive + falsePositive));
+        totalRecall += ((double)(truePositive) / (truePositive + falseNegative));
+        totalF1measure += (((double)2*truePositive) / ((2*truePositive) + trueNegative + falsePositive));
+
+
+        //totalAccuracy = totalAccuracy/numOfFolds;
+        //totalPrecision = totalPrecision/numOfFolds;
+        //totalRecall = totalRecall/numOfFolds;
+        //totalF1measure = totalF1measure/numOfFolds;
+
+        System.out.println("Accuracy = " + totalAccuracy);
+        System.out.println("Precision = " + totalPrecision);
+        System.out.println("Recall = " + totalRecall);
+        System.out.println("F1Measure = " + totalF1measure);
+
+
     }
 
-    public void performNaiveBayes(double[][] trainingSet, double[][] testSet) {
 
-        double accuracy;
-        double precision;
-        double recall;
-        double f1Measure;
+    public int[] performCrossValidation ( double[][] testingData ) {
+
+        int truePositive = 0;
+        int trueNegative = 0;
+        int falsePositive = 0;
+        int falseNegative = 0;
+
+        int[] returnArray = new int[4];
+
+        RealMatrix rm = MatrixUtils.createRealMatrix(testingData);
+        double[] trueLabel = rm.getColumn(testingData[0].length - 2);
+        double[] predictedLabel = rm.getColumn(testingData[0].length - 1);
+
+        for ( int i = 0; i < trueLabel.length; i++ ) {
+
+            if ( predictedLabel[i] == trueLabel[i] && trueLabel[i] == 1.0 ) {
+
+                truePositive++;
+
+            } else if ( predictedLabel[i] == trueLabel[i] && trueLabel[i] == 0.0 ) {
+
+                trueNegative++;
+
+            } else if ( predictedLabel[i] != trueLabel[i] && trueLabel[i] == 1.0 ) {
+
+                falseNegative++;
+
+            } else if ( predictedLabel[i] != trueLabel[i] && trueLabel[i] == 0.0 ) {
+
+                falsePositive++;
+
+            }
+
+        }
+
+        returnArray[0] = truePositive;
+        returnArray[1] = trueNegative;
+        returnArray[2] = falsePositive;
+        returnArray[3] = falseNegative;
+
+        return returnArray;
+
+
+    }
+
+    public double[][] performNaiveBayes ( double[][] trainingSet, double[][] testSet ) {
+
 
         //***************For Training**********************************
         double prior0Count = 0.0;
         double prior1Count = 0.0;
 
-        for (int i = 0; i < trainingSet.length; i++) {
+        for ( int i = 0; i < trainingSet.length; i++ ) {
 
-            if (trainingSet[i][trainingSet[0].length - 1] == 0.0) {
+            if ( trainingSet[i][trainingSet[0].length - 2] == 0.0 ) {
 
                 prior0Count++;
 
@@ -146,9 +225,9 @@ public class NaiveBayes {
 
         double[][] posteriorMatrix = new double[map.size()][2];
 
-        for (int i = 0; i < posteriorMatrix.length; i++) {
+        for ( int i = 0; i < posteriorMatrix.length; i++ ) {
 
-            for (int j = 0; j < posteriorMatrix[0].length; j++) {
+            for ( int j = 0; j < posteriorMatrix[0].length; j++ ) {
 
                 posteriorMatrix[i][j] = 0.0;
 
@@ -159,22 +238,22 @@ public class NaiveBayes {
         //create realMatrix
         RealMatrix rm = MatrixUtils.createRealMatrix(trainingSet);
 
-        for (int i = 0; i < categoricalIndexStorer.size(); i++) {
+        for ( int i = 0; i < categoricalIndexStorer.size(); i++ ) {
 
             int index = categoricalIndexStorer.get(i);
 
             double[] columnValues = rm.getColumn(index);
-            double[] trueLabelColumn = rm.getColumn(trainingSet[0].length - 1);
+            double[] trueLabelColumn = rm.getColumn(trainingSet[0].length - 2);
 
-            for (int k = 0; k < columnValues.length; k++) {
+            for ( int k = 0; k < columnValues.length; k++) {
 
-                if (trueLabelColumn[k] == 0) {
+                if ( trueLabelColumn[k] == 0.0 ) {
 
-                    posteriorMatrix[(int) columnValues[k]][0] += 1;
+                    posteriorMatrix[(int)columnValues[k]][0] +=  1;
 
                 } else {
 
-                    posteriorMatrix[(int) columnValues[k]][1] += 1;
+                    posteriorMatrix[(int)columnValues[k]][1] +=  1;
 
                 }
 
@@ -183,15 +262,15 @@ public class NaiveBayes {
 
         }
 
-        for (int i = 0; i < posteriorMatrix.length; i++) {
+        for ( int i = 0; i < posteriorMatrix.length; i++ ) {
 
             posteriorMatrix[i][0] /= prior0Count;
             posteriorMatrix[i][1] /= prior1Count;
 
         }
 
-        double prior0Prob = prior0Count / trainingSet.length;
-        double prior1Prob = prior1Count / trainingSet.length;
+        double prior0Prob = prior0Count/trainingSet.length;
+        double prior1Prob = prior1Count/trainingSet.length;
 
 
         //*******************For Testing*****************************
@@ -199,20 +278,21 @@ public class NaiveBayes {
         RealMatrix testingSetRM = MatrixUtils.createRealMatrix(testSet);
 
 
-        for (int i = 0; i < testSet.length; i++) {
 
-            double[] rowValues = rm.getRow(i);
+        for ( int i = 0; i < testSet.length; i++ ) {
+
+            double[] rowValues = testingSetRM.getRow(i);
 
             //-----------For Probability 0------------------------------------------
             double classPosteriorProbaility0 = prior0Prob; // get this checked
 
-            for (int j = 0; j < rowValues.length - 2; i++) {
+            for ( int j = 0; j < rowValues.length - 2; j++ ) {
 
 
-                if (categoricalIndexStorer.contains(j)) {
+                if ( categoricalIndexStorer.contains(j) ) {
 
                     //this is a categorical value
-                    double catValuePosteriorProb = posteriorMatrix[(int) rowValues[j]][0];
+                    double catValuePosteriorProb = posteriorMatrix[(int)rowValues[j]][0];
                     classPosteriorProbaility0 *= catValuePosteriorProb;
 
                 } else {
@@ -227,9 +307,9 @@ public class NaiveBayes {
                     double[] trueLabelColumn = rm.getColumn(trainingSet[0].length - 2);
                     List<Double> zeroValueColumnList = new ArrayList<>();
 
-                    for (int k = 0; k < columnValue.length; k++) {
+                    for ( int k = 0; k < columnValue.length; k++) {
 
-                        if (trueLabelColumn[k] == 0) {
+                        if ( trueLabelColumn[k] == 0 ) {
 
                             zeroValueColumnList.add(columnValue[k]);
 
@@ -239,7 +319,7 @@ public class NaiveBayes {
 
                     double[] zeroColumnValue = new double[zeroValueColumnList.size()];
 
-                    for (int m = 0; m < zeroColumnValue.length; m++) {
+                    for ( int m = 0; m < zeroColumnValue.length; m++ ) {
 
                         zeroColumnValue[m] = zeroValueColumnList.get(i);
 
@@ -260,13 +340,13 @@ public class NaiveBayes {
 
             double classPosteriorProbaility1 = prior1Prob; // get this checked
 
-            for (int j = 0; j < rowValues.length - 2; i++) {
+            for ( int j = 0; j < rowValues.length - 2; j++ ) {
 
 
-                if (categoricalIndexStorer.contains(j)) {
+                if ( categoricalIndexStorer.contains(j) ) {
 
                     //this is a categorical value
-                    double catValuePosteriorProb = posteriorMatrix[(int) rowValues[j]][1];
+                    double catValuePosteriorProb = posteriorMatrix[(int)rowValues[j]][1];
                     classPosteriorProbaility1 *= catValuePosteriorProb;
 
                 } else {
@@ -281,9 +361,9 @@ public class NaiveBayes {
                     double[] trueLabelColumn = rm.getColumn(trainingSet[0].length - 2);
                     List<Double> oneValueColumnList = new ArrayList<>();
 
-                    for (int k = 0; k < columnValue.length; k++) {
+                    for ( int k = 0; k < columnValue.length; k++) {
 
-                        if (trueLabelColumn[k] == 1) {
+                        if ( trueLabelColumn[k] == 1 ) {
 
                             oneValueColumnList.add(columnValue[k]);
 
@@ -293,7 +373,7 @@ public class NaiveBayes {
 
                     double[] oneColumnValue = new double[oneValueColumnList.size()];
 
-                    for (int m = 0; m < oneColumnValue.length; m++) {
+                    for ( int m = 0; m < oneColumnValue.length; m++ ) {
 
                         oneColumnValue[m] = oneValueColumnList.get(i);
 
@@ -310,7 +390,13 @@ public class NaiveBayes {
 
             }
 
-            if (classPosteriorProbaility0 > classPosteriorProbaility1) {
+            System.out.println("*************Iteration : " + i );
+            System.out.println(Arrays.toString(rowValues));
+            System.out.println("Probability of 0 : " + classPosteriorProbaility0 );
+            System.out.println("Probability of 1 : " + classPosteriorProbaility1 );
+            System.out.println("*************End Iteration******************");
+
+            if ( classPosteriorProbaility0 > classPosteriorProbaility1 ) {
 
                 testSet[i][testSet[0].length - 1] = 0.0;
 
@@ -323,50 +409,21 @@ public class NaiveBayes {
 
         }
 
+        return testSet;
 
     }
 
 
-    public double calculatePDF(double mean, double variance, double value) {
+    public double calculatePDF ( double mean, double variance, double value ) {
 
-        double denominator = 2 * Math.PI * mean;
+        double denominator = 2*Math.PI*mean;
         denominator = Math.pow(denominator, 0.5);
-        double EPow = (-Math.pow((value - mean), 2)) / (2 * variance);
-        double pdf = (Math.pow(Math.E, EPow)) / denominator;
+        double EPow = (-Math.pow((value-mean),2)) / (2*variance);
+        double pdf = (Math.pow(Math.E, EPow))/denominator;
         return pdf;
     }
 
-    /*public List<MeanVariance> getMeanAndVariance ( double[][] normalizedMatrix ) {
 
-        List<MeanVariance> resultList = new ArrayList<>();
-
-        for ( int i = 0; i < normalizedMatrix[0].length - 2; i++ ) {
-
-
-            //MeanVariance obj = new MeanVariance();
-
-        }
-
-    }
-*/
-    class MeanVariance {
-
-        double mean0;
-        double mean1;
-        double variance0;
-        double variance1;
-        int index;
-
-        public MeanVariance(double mean0, double variance0, double mean1, double variance1, int index) {
-
-            this.mean0 = mean0;
-            this.mean1 = mean1;
-            this.variance0 = variance0;
-            this.variance1 = variance1;
-            this.index = index;
-        }
-
-    }
 
 
 }

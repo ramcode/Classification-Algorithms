@@ -14,7 +14,7 @@ public class RunNaiveBayes {
 
         if (fileName == null || fileName.length() == 0) {
 
-            fileName = "project3_dataset4.txt";
+            fileName = "Test.txt";
 
         }
 
