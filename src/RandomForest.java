@@ -13,7 +13,7 @@ import java.util.stream.IntStream;
 /**
  * Created by VenkataRamesh on 12/7/2016.
  */
-public class DecisionTree {
+public class RandomForest {
 
     private int numOfFolds;
     private String fileName;
@@ -23,13 +23,13 @@ public class DecisionTree {
     public static final String CLASS_LABEL_NO = "CLASS_0";
     public static final String CLASS_LABEL_YES = "CLASS_1";
     public static final String NODE_LABEL = "ATTRIBUTE";
-    Map<String, Double> map = null;
+    private int randAttrVal;
 
-    public DecisionTree(int numOfFolds, String fileName) {
+    public RandomForest(int numOfFolds, String fileName, int randAttrVal) {
 
         this.numOfFolds = numOfFolds;
         this.fileName = fileName;
-
+        this.randAttrVal = randAttrVal;
     }
 
     public double[][] readDataSet(String path) {
@@ -44,7 +44,7 @@ public class DecisionTree {
             this.colCount = columns;
             dataMatrix = new double[rows][columns + 1];
             double count = 0;
-            map = new HashMap<String, Double>();
+            Map<String, Double> map = new HashMap<String, Double>();
             for (int i = 0; i < rows; i++) {
                 String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
                 for (int j = 0; j < columns; j++) {
@@ -58,9 +58,9 @@ public class DecisionTree {
                         if (map.containsKey(string)) {
                             dataMatrix[i][j] = map.get(singleDataSampleValue[j]);
                         } else {
+                            count++;
                             map.put(string.toString(), count);
                             dataMatrix[i][j] = count;
-                            count++;
                         }
                     }
                 }
@@ -70,32 +70,40 @@ public class DecisionTree {
             e.printStackTrace();
         }
         CrossValidation cv = new CrossValidation();
-        dataMatrix = cv.getNormalizedMatrix(dataMatrix, ignoreList,0);
+        dataMatrix = cv.getNormalizedMatrix(dataMatrix, ignoreList, 0);
         return dataMatrix;
     }
 
 
-    public void runTreeInductionAlgo(double[][] dataMatrix, int kFold) {
+    public List<DecisionNode> runTreeInductionAlgo(double[][] dataMatrix, int kFold, int randAttrToSelect) {
         System.out.println("Running Tree Induction Algo...");
         CrossValidation cv = new CrossValidation(dataMatrix, kFold);
-        List<Object[]> kFoldSplits = cv.generateKFoldSplit(dataMatrix, kFold);
+        List<Object[]> kFoldSplits = cv.generateRandomSamples(dataMatrix, kFold);
         List<double[][]> validatedSplits = new ArrayList<>();
         double avgPrecision = 0, avgRecall = 0, avgFmeasure = 0, avgAccuracy = 0;
         //TODO change
+        List<DecisionNode> randomTrees = new ArrayList<>();
         for (int i = 0; i < kFoldSplits.size(); i++) {
             Object[] split = kFoldSplits.get(i);
             double truePositive = 0, trueNegative = 0, falsePositive = 0, falseNegtive = 0;
             List<Integer> remainingAttributes = new ArrayList<>();
+            int m = 0;
+            while (m < randAttrToSelect) {
+                Random rand = new Random();
+                int attrIndex = rand.nextInt(colCount);
+                if (!remainingAttributes.contains(attrIndex)) {
+                    remainingAttributes.add(attrIndex);
+                    m++;
+                }
+            }
             double[][] trainData = (double[][]) split[0];
-            double[][] testData = (double[][]) split[1];
-            IntStream.range(0, colCount - 1).forEach(x -> remainingAttributes.add(x));
-            System.out.println("Creating decision tree for split:" + (i + 1) + "");
+            //double[][] testData = (double[][]) split[1];
+            System.out.println("Creating Random tree, iteration:" + (i + 1) + "");
             DecisionNode decisionTree = createDecisionTree(trainData, remainingAttributes);
-            System.out.println("Printing tree");
-            printTree(decisionTree, "\t");
-            System.out.println("Validting decision tree on split:" + (i + 1) + "");
-            validateTestData(decisionTree, testData);
-            for (int j = 0; j < testData.length; j++) {
+            randomTrees.add(decisionTree);
+
+            //validateTestData(decisionTree, testData);
+            /*for (int j = 0; j < testData.length; j++) {
                 if (testData[j][colCount - 1] == 1 && testData[j][colCount] == 1) truePositive++;
                 else if (testData[j][colCount - 1] == 1 && testData[j][colCount] == 0) falseNegtive++;
                 else if (testData[j][colCount - 1] == 0 && testData[j][colCount] == 1) falsePositive++;
@@ -109,9 +117,9 @@ public class DecisionTree {
             double currRecall = truePositive / (truePositive + falseNegtive);
             avgRecall += !Double.isNaN(currRecall) ? currRecall : 0;
             double currFmeasure = (2 * currRecall * currPrecision) / (currRecall + currPrecision);
-            avgFmeasure += !Double.isNaN(currFmeasure) ? currFmeasure : 0;
+            avgFmeasure += !Double.isNaN(currFmeasure) ? currFmeasure : 0;*/
         }
-        avgAccuracy = avgAccuracy / kFold;
+        /*avgAccuracy = avgAccuracy / kFold;
         avgPrecision = avgPrecision / kFold;
         avgRecall = avgRecall / kFold;
         avgFmeasure = avgFmeasure / kFold;
@@ -119,38 +127,65 @@ public class DecisionTree {
         System.out.println("Decision Tree, Avg, Accuracy: " + avgAccuracy);
         System.out.println("Decision Tree, Avg, Precision: " + avgPrecision);
         System.out.println("Decision Tree, Avg, Recall: " + avgRecall);
-        System.out.println("Decision Tree, Avg, Fmeasure: " + avgFmeasure);
+        System.out.println("Decision Tree, Avg, Fmeasure: " + avgFmeasure);*/
+        return randomTrees;
     }
 
-    public void validateTestData(DecisionNode root, double[][] testData) {
-        String tab = "\t";
+    public void validateRandomForest(double[][] testData, List<DecisionNode> randomTrees) {
+        //String tab = "\t";
         //TODO change later
-        for (int i = 0; i <testData.length ; i++) {
-            while (root != null && !root.isLeaf) {
-                System.out.println(root.featureLabel);
-                int attributeIndex = root.attributeIndex;
-                String edgeLabel = root.featureLabel;
-                if (testData[i][attributeIndex] <= root.splitAttributeCutValue) {
-                    edgeLabel += " < " + root.splitAttributeCutValue;
-                    System.out.println(tab+"\t"+edgeLabel);
-                    tab = tab+"\t";
-                } else {
-                    edgeLabel += " > " + root.splitAttributeCutValue;
-                    System.out.println(tab+"\t"+edgeLabel);
-                    tab = tab+"\t";
+        for (int i = 0; i < testData.length; i++) {
+            int count1 = 0, count0 = 0;
+            for (int m = 0; m < randomTrees.size(); m++) {
+                DecisionNode root = randomTrees.get(m);
+                while (root != null && !root.isLeaf) {
+                    System.out.println(root.featureLabel);
+                    int attributeIndex = root.attributeIndex;
+                    String edgeLabel = root.featureLabel;
+                    if (testData[i][attributeIndex] <= root.splitAttributeCutValue) {
+                        edgeLabel += " < " + root.splitAttributeCutValue;
+                    } else {
+                        edgeLabel += " > " + root.splitAttributeCutValue;
+                    }
+                    root = root.children.get(edgeLabel);
                 }
-                root = root.children.get(edgeLabel);
-            }
-            if (root.isLeaf) {
-                if (root.featureLabel.split("_")[1].equals("1")) {
-                    //System.out.println(tab+"\t"+root.featureLabel);
-                    testData[i][colCount] = 1;
-                } else {
-                    testData[i][colCount] = 0;
-                    //System.out.println(tab+"\t"+root.featureLabel);
+                if (root.isLeaf) {
+                    if (root.featureLabel.split("_")[1].equals("1")) {
+                        //System.out.println(tab+"\t"+root.featureLabel);
+                        //testData[i][colCount] = 1;
+                        count1++;
+                    } else {
+                        //testData[i][colCount] = 0;
+                        count0++;
+                        //System.out.println(tab+"\t"+root.featureLabel);
+                    }
                 }
             }
+            if (count1 >= count0) {
+                testData[i][colCount] = 1;
+            } else testData[i][colCount] = 0;
         }
+        double truePositive = 0, trueNegative = 0, falsePositive = 0, falseNegtive = 0;
+        for (int j = 0; j < testData.length; j++) {
+            if (testData[j][colCount - 1] == 1 && testData[j][colCount] == 1) truePositive++;
+            else if (testData[j][colCount - 1] == 1 && testData[j][colCount] == 0) falseNegtive++;
+            else if (testData[j][colCount - 1] == 0 && testData[j][colCount] == 1) falsePositive++;
+            else if (testData[j][colCount - 1] == 0 && testData[j][colCount] == 0) trueNegative++;
+        }
+
+        double currAccuracy = (truePositive + trueNegative) / testData.length;
+        currAccuracy = !Double.isNaN(currAccuracy) ? currAccuracy : 0;
+        double currPrecision = truePositive / (truePositive + falsePositive);
+        currPrecision = !Double.isNaN(currPrecision) ? currPrecision : 0;
+        double currRecall = truePositive / (truePositive + falseNegtive);
+        currRecall = !Double.isNaN(currRecall) ? currRecall : 0;
+        double currFmeasure = (2 * currRecall * currPrecision) / (currRecall + currPrecision);
+        currFmeasure = !Double.isNaN(currFmeasure) ? currFmeasure : 0;
+        System.out.println("Printing Evalauation Metrics...");
+        System.out.println("Random Forest Tree, Avg, Accuracy: " + currAccuracy);
+        System.out.println("Random Forest, Avg, Precision: " + currPrecision);
+        System.out.println("Random Forest, Avg, Recall: " + currRecall);
+        System.out.println("Random Forest, Avg, Fmeasure: " + currFmeasure);
     }
 
     public double calculateGINI(double[][] dataSet) {
@@ -230,7 +265,7 @@ public class DecisionTree {
         double splitAttributeCutValue = candidateAttribute[1];
         int cutIndex = new Double(candidateAttribute[2]).intValue();
         node.setLeaf(false);
-        node.setFeatureLabel(NODE_LABEL +"_"+splitAttributeIndex);
+        node.setFeatureLabel(NODE_LABEL + "_" + splitAttributeIndex);
         node.attributeIndex = splitAttributeIndex;
         node.splitAttributeCutValue = splitAttributeCutValue;
         remainingAttributes.remove(splitAttributeIndex);
@@ -262,17 +297,17 @@ public class DecisionTree {
     }
 
 
-    public void printTree(DecisionNode root, String tab){
-        if(root.isLeaf){
-            System.out.println(tab+root.featureLabel);
-            tab = tab+"\t";
+    public void printTree(DecisionNode root, String tab) {
+        if (root.isLeaf) {
+            System.out.println(tab + root.featureLabel);
+            tab = tab + "\t";
             return;
         }
-        System.out.println(tab+root.featureLabel);
-        tab = tab+ "\t";
+        System.out.println(tab + root.featureLabel);
+        tab = tab + "\t";
         boolean left = true;
-        for(Map.Entry<String, DecisionNode> entry : root.children.entrySet()){
-            printTree(entry.getValue(),left?"":tab);
+        for (Map.Entry<String, DecisionNode> entry : root.children.entrySet()) {
+            printTree(entry.getValue(), left ? "" : tab);
             left = false;
         }
     }
