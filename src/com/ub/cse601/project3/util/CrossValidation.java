@@ -8,6 +8,8 @@ import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
+import java.util.stream.IntStream;
 
 /**
  * Created by VenkataRamesh on 12/7/2016.
@@ -52,6 +54,28 @@ public class CrossValidation {
         return splitList;
     }
 
+    public List<Object[]> generateRandomSamples(double[][] dataSet, int samples) {
+        List<Object[]> splitList = new ArrayList<>();
+        int splitSize = new Double((dataSet.length) * 0.7).intValue();
+        int testSplitStartIndex = 0;
+        for (int k = 0; k < samples; k++) {
+            Object[] split = new Object[2];
+            double[][] testData = new double[splitSize][dataSet[0].length];
+            double[][] trainData = new double[splitSize][dataSet[0].length];
+            for (int i = 0; i < splitSize; i++) {
+                Random rand = new Random();
+                int index = rand.nextInt(dataSet.length);
+                for(int j= 0; j<dataSet[0].length; j++){
+                    trainData[i][j] = dataSet[index][j];
+                }
+            }
+            split[0] = trainData;
+            split[1] = testData;
+            splitList.add(split);
+        }
+        return splitList;
+    }
+
     public static Object[] generatePartitionsForSplit(double[][] trainData, int splitIndex) {
         Object[] partitions = new Object[2];
         RealMatrix rm = MatrixUtils.createRealMatrix(trainData);
@@ -83,12 +107,13 @@ public class CrossValidation {
             }
             normalizedMatrix.setColumn(dataMatrix[0].length - 2, rm.getColumn(dataMatrix[0].length - 2));
             normalizedMatrix.setColumn(dataMatrix[0].length - 1, rm.getColumn(dataMatrix[0].length - 1));
-            if (flag==1)
-            {
+            if (flag == 1) {
                 normalizedMatrix.setColumn(dataMatrix[0].length - 3, rm.getColumn(dataMatrix[0].length - 3));
             }
 
         }
         return normalizedMatrix.getData();
     }
+
+
 }

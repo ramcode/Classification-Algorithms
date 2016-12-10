@@ -24,6 +24,7 @@ public class DecisionTree {
     public static final String CLASS_LABEL_YES = "CLASS_1";
     public static final String NODE_LABEL = "ATTRIBUTE";
     Map<String, Double> map = null;
+    Map<Double, String> reverseMap = null;
 
     public DecisionTree(int numOfFolds, String fileName) {
 
@@ -45,6 +46,7 @@ public class DecisionTree {
             dataMatrix = new double[rows][columns + 1];
             double count = 0;
             map = new HashMap<String, Double>();
+            reverseMap = new HashMap<Double, String>();
             for (int i = 0; i < rows; i++) {
                 String[] singleDataSampleValue = dataSamples.get(i).trim().split("\\s+");
                 for (int j = 0; j < columns; j++) {
@@ -60,6 +62,7 @@ public class DecisionTree {
                         } else {
                             map.put(string.toString(), count);
                             dataMatrix[i][j] = count;
+                            reverseMap.put(count, singleDataSampleValue[j]);
                             count++;
                         }
                     }
