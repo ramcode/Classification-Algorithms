@@ -14,7 +14,10 @@ public class RunNaiveBayes {
 
         if (fileName == null || fileName.length() == 0) {
 
-            fileName = "Test.txt";
+            //fileName = "Test.txt";
+            fileName = "project3_dataset4.txt";
+            //fileName = "project3_dataset2.txt";
+            //fileName = "project3_dataset1.txt";
 
         }
 
