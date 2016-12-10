@@ -13,15 +13,15 @@ import java.awt.event.*;
 import javax.swing.*;
 
 public class VisualizeTree extends JFrame {
-    /*int width;
+   /* int width;
     int height;
 
    DecisionTreeNode root;
 
     public VisualizeTree() { //Constructor
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        width = 30;
-        height = 30;
+        width = 500;
+        height = 600;
     }
 
     public VisualizeTree(String title, DecisionTreeNode root) { //Construct with label
@@ -40,8 +40,8 @@ public class VisualizeTree extends JFrame {
         }
     }
 
-    public void addNode(DecisionNode node) {
-        //this.root.ad
+    public void addNode(DecisionNode node, String edgeLabel) {
+        chil
         this.repaint();
     }
 

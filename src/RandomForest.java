@@ -269,7 +269,7 @@ public class RandomForest {
         node.attributeIndex = splitAttributeIndex;
         node.splitAttributeCutValue = splitAttributeCutValue;
         remainingAttributes.remove(splitAttributeIndex);
-        Object[] partitions = CrossValidation.generatePartitionsForSplit(trainData, cutIndex);
+        Object[] partitions = CrossValidation.generatePartitionsForSplit(trainData, cutIndex, splitAttributeIndex);
         boolean left = true;
         for (Object partition : partitions) {
             double[][] partitionData = (double[][]) partition;

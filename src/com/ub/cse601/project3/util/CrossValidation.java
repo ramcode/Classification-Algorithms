@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -65,7 +66,7 @@ public class CrossValidation {
             for (int i = 0; i < splitSize; i++) {
                 Random rand = new Random();
                 int index = rand.nextInt(dataSet.length);
-                for(int j= 0; j<dataSet[0].length; j++){
+                for (int j = 0; j < dataSet[0].length; j++) {
                     trainData[i][j] = dataSet[index][j];
                 }
             }
@@ -76,11 +77,19 @@ public class CrossValidation {
         return splitList;
     }
 
-    public static Object[] generatePartitionsForSplit(double[][] trainData, int splitIndex) {
+    public static Object[] generatePartitionsForSplit(double[][] trainData, double cutValue, int attributeIndex) {
+        Arrays.sort(trainData, (r1, r2) -> Double.compare(r1[attributeIndex], r2[attributeIndex]));
+        int cutIndex = 0;
+        for (int i = 0; i < trainData.length; i++) {
+            if (trainData[i][attributeIndex] == cutValue) {
+                cutIndex = i;
+                break;
+            }
+        }
         Object[] partitions = new Object[2];
         RealMatrix rm = MatrixUtils.createRealMatrix(trainData);
-        partitions[0] = rm.getSubMatrix(0, splitIndex, 0, trainData[0].length - 1).getData();
-        partitions[1] = rm.getSubMatrix(splitIndex + 1, trainData.length - 1, 0, trainData[0].length - 1).getData();
+        partitions[0] = rm.getSubMatrix(0, cutIndex, 0, trainData[0].length - 1).getData();
+        partitions[1] = rm.getSubMatrix(cutIndex + 1, trainData.length - 1, 0, trainData[0].length - 1).getData();
         return partitions;
     }
 

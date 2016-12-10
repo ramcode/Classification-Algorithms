@@ -12,6 +12,7 @@ public class DecisionNode {
     public boolean isLeaf;
     public int attributeIndex;
     public double splitAttributeCutValue;
+    public String splitCatValue;
 
     public DecisionNode(String featureLabel) {
         this.featureLabel = featureLabel;
