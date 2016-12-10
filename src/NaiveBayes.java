@@ -4,6 +4,7 @@ import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.util.MathUtils;
 
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -101,6 +102,9 @@ public class NaiveBayes {
 
         }
 
+        //CrossValidation cvObject = new CrossValidation(dataMatrix, numOfFolds) ;
+        //dataMatrix = cvObject.getNormalizedMatrix(dataMatrix, categoricalIndexStorer, 0);
+        //Arrays.stream(dataMatrix).forEach(x->System.out.println(Arrays.toString(x)));
         return dataMatrix;
     }
 
@@ -119,8 +123,26 @@ public class NaiveBayes {
         double totalRecall = 0;
         double totalF1measure = 0;
 
+        /*System.out.println("*************MAP************************");
+
+        Iterator it = map.entrySet().iterator();
+
+        while ( it.hasNext() ) {
+
+            Map.Entry pair = (Map.Entry)it.next();
+            System.out.println(pair.getKey() + " = " + pair.getValue());
+
+        }
+
+        System.out.println("*************MAP END************************");
+*/
 
         for ( Object singleObject[] : getSplitSetsList ) {
+
+            truePositive = 0;
+            trueNegative = 0;
+            falsePositive =0;
+            falseNegative =0;
 
             double[][] trainingSet = (double[][])singleObject[0];
             double[][] testingSet = (double[][])singleObject[1];
@@ -129,24 +151,39 @@ public class NaiveBayes {
 
             int[] validationData = performCrossValidation ( result );
             //Arrays.stream(result).forEach( x -> System.out.println(Arrays.toString(x)));
+            //System.out.println("******Validation values per iteration***************");
+            //System.out.println("TP:" + validationData[0]);
+            //System.out.println("TN:" + validationData[1]);
+            //System.out.println("FP:" + validationData[2]);
+            //System.out.println("FN:" + validationData[3]);
+            //System.out.println("******************************************************");
 
             truePositive += validationData[0];
             trueNegative += validationData[1];
             falsePositive += validationData[2];
             falseNegative += validationData[3];
 
+
+            totalAccuracy += !Double.isNaN(((double)(truePositive + trueNegative)/(truePositive + trueNegative + falsePositive + falseNegative))) ? ((double)(truePositive + trueNegative)/(truePositive + trueNegative + falsePositive + falseNegative)) : 0;
+            //totalAccuracy += ((double)(truePositive + trueNegative)/(truePositive + trueNegative + falsePositive + falseNegative));
+            //System.out.println("total accuracy ="+totalAccuracy);
+            totalPrecision += !Double.isNaN(((double)(truePositive) / (truePositive + falsePositive))) ? ((double)(truePositive) / (truePositive + falsePositive)) : 0;
+            //totalPrecision += ((double)(truePositive) / (truePositive + falsePositive));
+            totalRecall += !Double.isNaN(((double)(truePositive) / (truePositive + falseNegative))) ? ((double)(truePositive) / (truePositive + falseNegative)) : 0;
+            //totalRecall += ((double)(truePositive) / (truePositive + falseNegative));
+            totalF1measure += !Double.isNaN((((double)2*truePositive) / ((2*truePositive) + falseNegative + falsePositive))) ? (((double)2*truePositive) / ((2*truePositive) + falseNegative + falsePositive)) : 0;
+            //totalF1measure += (((double)2*truePositive) / ((2*truePositive) + falseNegative + falsePositive));
+
         }
 
-        totalAccuracy += ((double)(truePositive + trueNegative)/(truePositive + trueNegative + falsePositive + falseNegative));
-        totalPrecision += ((double)(truePositive) / (truePositive + falsePositive));
-        totalRecall += ((double)(truePositive) / (truePositive + falseNegative));
-        totalF1measure += (((double)2*truePositive) / ((2*truePositive) + trueNegative + falsePositive));
 
 
-        //totalAccuracy = totalAccuracy/numOfFolds;
-        //totalPrecision = totalPrecision/numOfFolds;
-        //totalRecall = totalRecall/numOfFolds;
-        //totalF1measure = totalF1measure/numOfFolds;
+
+
+        totalAccuracy = totalAccuracy/numOfFolds;
+        totalPrecision = totalPrecision/numOfFolds;
+        totalRecall = totalRecall/numOfFolds;
+        totalF1measure = totalF1measure/numOfFolds;
 
         System.out.println("Accuracy = " + totalAccuracy);
         System.out.println("Precision = " + totalPrecision);
@@ -235,7 +272,10 @@ public class NaiveBayes {
 
         }
 
-        //create realMatrix
+
+
+
+        //without smoothing
         RealMatrix rm = MatrixUtils.createRealMatrix(trainingSet);
 
         for ( int i = 0; i < categoricalIndexStorer.size(); i++ ) {
@@ -262,6 +302,7 @@ public class NaiveBayes {
 
         }
 
+
         for ( int i = 0; i < posteriorMatrix.length; i++ ) {
 
             posteriorMatrix[i][0] /= prior0Count;
@@ -269,8 +310,65 @@ public class NaiveBayes {
 
         }
 
+
         double prior0Prob = prior0Count/trainingSet.length;
         double prior1Prob = prior1Count/trainingSet.length;
+        //System.out.println("Prior 0 " + prior0Count);
+        //System.out.println("Prior 1 " + prior1Count);
+
+        //smoothing - Laplace Prior
+
+/*
+        RealMatrix rm = MatrixUtils.createRealMatrix(trainingSet);
+
+        for ( int i = 0; i < categoricalIndexStorer.size(); i++ ) {
+
+            int index = categoricalIndexStorer.get(i);
+
+            double[] columnValues = rm.getColumn(index);
+            double[] trueLabelColumn = rm.getColumn(trainingSet[0].length - 2);
+
+            for ( int k = 0; k < columnValues.length; k++) {
+
+                if ( trueLabelColumn[k] == 0.0 ) {
+
+                    posteriorMatrix[(int)columnValues[k]][0] +=  1;
+
+                } else {
+
+                    posteriorMatrix[(int)columnValues[k]][1] +=  1;
+
+                }
+
+
+            }
+
+        }
+
+
+        for ( int i = 0; i < posteriorMatrix.length; i++ ) {
+
+            posteriorMatrix[i][0] += 1;
+            posteriorMatrix[i][1] += 1;
+
+        }
+
+
+        for ( int i = 0; i < posteriorMatrix.length; i++ ) {
+
+            posteriorMatrix[i][0] /= (prior0Count + map.size());
+            posteriorMatrix[i][1] /= (prior1Count + map.size());
+
+        }
+
+
+        double prior0Prob = (prior0Count + 1)/(trainingSet.length + 2);
+        double prior1Prob = (prior1Count + 1)/(trainingSet.length+ 2);
+        System.out.println("Prior 0 " + prior0Prob);
+        System.out.println("Prior 1 " + prior1Prob);
+*/
+
+
 
 
         //*******************For Testing*****************************
@@ -294,6 +392,7 @@ public class NaiveBayes {
                     //this is a categorical value
                     double catValuePosteriorProb = posteriorMatrix[(int)rowValues[j]][0];
                     classPosteriorProbaility0 *= catValuePosteriorProb;
+                    //System.out.println("Multiplication result for zeroProsteriorProb: " + classPosteriorProbaility0);
 
                 } else {
 
@@ -321,16 +420,19 @@ public class NaiveBayes {
 
                     for ( int m = 0; m < zeroColumnValue.length; m++ ) {
 
-                        zeroColumnValue[m] = zeroValueColumnList.get(i);
+                        zeroColumnValue[m] = zeroValueColumnList.get(m);
 
 
                     }
-
+                    //System.out.println("Zero Col Value - " + Arrays.toString(zeroColumnValue));
                     double meanColumn = StatUtils.mean(zeroColumnValue);
+                    //System.out.println("Mean column:" + meanColumn);
                     double varianceColumn = StatUtils.variance(zeroColumnValue);
-
+                    //System.out.println("variance col: " + varianceColumn);
                     double observationPDF = calculatePDF(meanColumn, varianceColumn, rowValues[j]);
+                    //System.out.println("Observation PDF0: " + observationPDF);
                     classPosteriorProbaility0 *= observationPDF;
+                    //System.out.println("Multiplication result for zeroProsteriorProb: " + classPosteriorProbaility0);
 
                 }
 
@@ -348,6 +450,7 @@ public class NaiveBayes {
                     //this is a categorical value
                     double catValuePosteriorProb = posteriorMatrix[(int)rowValues[j]][1];
                     classPosteriorProbaility1 *= catValuePosteriorProb;
+                    //System.out.println("Multiplication result for oneProsteriorProb: " + classPosteriorProbaility1);
 
                 } else {
 
@@ -375,26 +478,28 @@ public class NaiveBayes {
 
                     for ( int m = 0; m < oneColumnValue.length; m++ ) {
 
-                        oneColumnValue[m] = oneValueColumnList.get(i);
-
+                        oneColumnValue[m] = oneValueColumnList.get(m);
 
                     }
-
+                    //System.out.println("One Col Value - " + Arrays.toString(oneColumnValue));
                     double meanColumn = StatUtils.mean(oneColumnValue);
+                    //System.out.println("Mean column:" + meanColumn);
                     double varianceColumn = StatUtils.variance(oneColumnValue);
+                    //System.out.println("variance col: " + varianceColumn);
 
                     double observationPDF = calculatePDF(meanColumn, varianceColumn, rowValues[j]);
+                    //System.out.println("ObservationPDF1:" + observationPDF);
                     classPosteriorProbaility1 *= observationPDF;
-
+                    //System.out.println("Multiplication result for onePosteriorProb: " + classPosteriorProbaility1);
                 }
 
             }
 
-            System.out.println("*************Iteration : " + i );
-            System.out.println(Arrays.toString(rowValues));
+            //System.out.println("*************Iteration : " + i );
+            //System.out.println(Arrays.toString(rowValues));
             System.out.println("Probability of 0 : " + classPosteriorProbaility0 );
             System.out.println("Probability of 1 : " + classPosteriorProbaility1 );
-            System.out.println("*************End Iteration******************");
+            //System.out.println("*************End Iteration******************");
 
             if ( classPosteriorProbaility0 > classPosteriorProbaility1 ) {
 
