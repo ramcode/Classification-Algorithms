@@ -162,12 +162,12 @@ public class DecisionTree {
         System.out.println("Decision Tree, Avg, Fmeasure: " + avgFmeasure);
     }
 
-    public void validateTestData(DecisionNode root, double[][] testData) {
+    public void validateTestData(DecisionNode rootNode, double[][] testData) {
         String tab = "\t";
         //TODO change later
         for (int i = 0; i < testData.length; i++) {
-            while (root != null && !root.isLeaf) {
-                System.out.println(root.featureLabel);
+            DecisionNode root = rootNode;
+            while (!root.isLeaf) {
                 int attributeIndex = root.attributeIndex;
                 String edgeLabel = root.featureLabel;
                 if (ignoreList.contains(attributeIndex)) {
@@ -186,7 +186,7 @@ public class DecisionTree {
                 }
                 root = root.children.get(edgeLabel);
             }
-            if (root!=null && root.isLeaf) {
+            if (root.isLeaf) {
                 if (root.featureLabel.split("_")[1].equals("1")) {
                     //System.out.println(tab+"\t"+root.featureLabel);
                     testData[i][colCount] = 1;
