@@ -1,7 +1,3 @@
-import com.ub.cse601.project3.util.CrossValidation;
-
-import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
 
 public class RunNaiveBayes {
