@@ -9,25 +9,35 @@ public class RunNaiveBayes {
     public static void main ( String args[] ) {
 
         Scanner sc = new Scanner(System.in);
+
+        System.out.println("Enter Cross Validation Fold Number: ");
+        System.out.println("Enter a negative value for NO cross validation: ");
+        int foldNumber = Integer.valueOf(sc.nextLine());
+
         System.out.println("Enter File name of data set: ");
         String fileName = sc.nextLine();
 
         if (fileName == null || fileName.length() == 0) {
 
-            //fileName = "Test.txt";
-            fileName = "project3_dataset4.txt";
-            //fileName = "project3_dataset2.txt";
-            //fileName = "project3_dataset1.txt";
+            fileName = "project3_dataset1.txt";
+
+        }
+
+        System.out.println("Enter File name of testing data set: ");
+        String testFileName = sc.nextLine();
+
+        if (testFileName == null || testFileName.length() == 0) {
+
+            testFileName = fileName;
 
         }
 
         String path = "data/";
-        System.out.println("Enter Cross Validation Fold Number: ");
-        int foldNumber = Integer.valueOf(sc.nextLine());
 
         NaiveBayes nbHandler = new NaiveBayes(fileName, foldNumber);
-        double[][] featureMatrix = nbHandler.readFeatureValues(path);
-        nbHandler.startNaiveBayes(featureMatrix);
+        double[][] featureMatrix = nbHandler.readFeatureValues(path, fileName);
+        double[][] testMatrix = nbHandler.readFeatureValues(path, testFileName);
+        nbHandler.startNaiveBayes(featureMatrix, testMatrix);
 
 
 

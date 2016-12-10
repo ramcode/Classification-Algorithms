@@ -11,6 +11,11 @@ public class RunDecisionTree {
     public static void main(String args[]) {
 
         Scanner sc = new Scanner(System.in);
+
+        System.out.println("Enter Cross Validation Fold Number: ");
+        System.out.println("Enter a negative value for NO cross validation: ");
+        int foldNumber = Integer.valueOf(sc.nextLine());
+
         System.out.println("Enter File name of data set: ");
         String fileName = sc.nextLine();
 
@@ -20,12 +25,20 @@ public class RunDecisionTree {
 
         }
 
+        System.out.println("Enter File name of testing data set: ");
+        String testFileName = sc.nextLine();
+
+        if (testFileName == null || testFileName.length() == 0) {
+
+            testFileName = fileName;
+        }
+
         String path = "data/";
-        System.out.println("Enter Cross Validation Fold Number: ");
-        int foldNumber = Integer.valueOf(sc.nextLine());
+
         DecisionTree decisionTree = new DecisionTree(foldNumber, fileName);
-        double[][] dataMatrix = decisionTree.readDataSet(path);
-        decisionTree.runTreeInductionAlgo(dataMatrix, foldNumber);
+        double[][] dataMatrix = decisionTree.readDataSet(path, fileName);
+        double[][] testMatrix = decisionTree.readDataSet(path, testFileName);
+        decisionTree.runTreeInductionAlgo(dataMatrix, testMatrix);
         //double[][] distanceMatrix = KNN.calculateDistanceMatrix();
 
         /*Arrays.stream(matrix).forEach(x -> {

@@ -18,6 +18,8 @@ public class DecisionTree {
     private int numOfFolds;
     private String fileName;
     public double[][] dataMatrix;
+    public double[][] trainDataMatrix;
+    public double[][] testDataMatrix;
     private int dataSampleCount;
     private int colCount;
     public static final String CLASS_LABEL_NO = "CLASS_0";
@@ -33,7 +35,7 @@ public class DecisionTree {
 
     }
 
-    public double[][] readDataSet(String path) {
+    public double[][] readDataSet(String path, String fileName) {
         Path filePath = null;
         List<Integer> ignoreList = new ArrayList<Integer>();
         try {
@@ -78,10 +80,23 @@ public class DecisionTree {
     }
 
 
-    public void runTreeInductionAlgo(double[][] dataMatrix, int kFold) {
+    public void runTreeInductionAlgo(double[][] dataMatrix, double[][] testDataMatrix) {
         System.out.println("Running Tree Induction Algo...");
-        CrossValidation cv = new CrossValidation(dataMatrix, kFold);
-        List<Object[]> kFoldSplits = cv.generateKFoldSplit(dataMatrix, kFold);
+        CrossValidation cv = new CrossValidation(dataMatrix, numOfFolds);
+        List<Object[]> kFoldSplits = new ArrayList<Object[]>();
+
+        if(numOfFolds>0)
+        {
+            kFoldSplits = cv.generateKFoldSplit(dataMatrix, numOfFolds);
+        }
+        else
+        {
+            Object[] traintestSplit = new Object[2];
+            traintestSplit[0] = dataMatrix;
+            traintestSplit[1] = testDataMatrix;
+            kFoldSplits.add(traintestSplit);
+        }
+
         List<double[][]> validatedSplits = new ArrayList<>();
         double avgPrecision = 0, avgRecall = 0, avgFmeasure = 0, avgAccuracy = 0;
         //TODO change
@@ -114,10 +129,15 @@ public class DecisionTree {
             double currFmeasure = (2 * currRecall * currPrecision) / (currRecall + currPrecision);
             avgFmeasure += !Double.isNaN(currFmeasure) ? currFmeasure : 0;
         }
-        avgAccuracy = avgAccuracy / kFold;
-        avgPrecision = avgPrecision / kFold;
-        avgRecall = avgRecall / kFold;
-        avgFmeasure = avgFmeasure / kFold;
+
+        if(numOfFolds>0)
+        {
+            avgAccuracy = avgAccuracy / numOfFolds;
+            avgPrecision = avgPrecision / numOfFolds;
+            avgRecall = avgRecall / numOfFolds;
+            avgFmeasure = avgFmeasure / numOfFolds;
+        }
+
         System.out.println("Printing Evalauation Metrics...");
         System.out.println("Decision Tree, Avg, Accuracy: " + avgAccuracy);
         System.out.println("Decision Tree, Avg, Precision: " + avgPrecision);

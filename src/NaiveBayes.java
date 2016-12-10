@@ -16,6 +16,8 @@ public class NaiveBayes {
     private int numOfFolds;
     private String fileName;
     public double[][] dataMatrix;
+    public double[][] trainDataMatrix;
+    public double[][] testDataMatrix;
     private int dataSampleCount;
     private List<Integer> categoricalIndexStorer;
     private Map<String,Double> map;
@@ -31,7 +33,7 @@ public class NaiveBayes {
 
     }
 
-    public double[][] readFeatureValues ( String path ) {
+    public double[][] readFeatureValues ( String path, String fileName ) {
 
         Path filePath = null;
 
@@ -108,10 +110,23 @@ public class NaiveBayes {
         return dataMatrix;
     }
 
-    public void startNaiveBayes ( double[][] featureMatrix ) {
+    public void startNaiveBayes ( double[][] featureMatrix, double[][] testDataMatrix ) {
+
 
         CrossValidation crossValidationObj = new CrossValidation( featureMatrix, numOfFolds );
-        List<Object[]> getSplitSetsList = crossValidationObj.generateKFoldSplit( featureMatrix, numOfFolds );
+        List<Object[]> getSplitSetsList = new ArrayList<Object[]>();
+        if(numOfFolds>0)
+        {
+            getSplitSetsList = crossValidationObj.generateKFoldSplit( featureMatrix, numOfFolds );
+        }
+        else
+        {
+            Object[] traintestSplit = new Object[2];
+            traintestSplit[0] = featureMatrix;
+            traintestSplit[1] = testDataMatrix;
+            getSplitSetsList.add(traintestSplit);
+
+        }
 
         int truePositive = 0;
         int trueNegative = 0;
@@ -180,10 +195,13 @@ public class NaiveBayes {
 
 
 
-        totalAccuracy = totalAccuracy/numOfFolds;
-        totalPrecision = totalPrecision/numOfFolds;
-        totalRecall = totalRecall/numOfFolds;
-        totalF1measure = totalF1measure/numOfFolds;
+        if(numOfFolds>0)
+        {
+            totalAccuracy = totalAccuracy/numOfFolds;
+            totalPrecision = totalPrecision/numOfFolds;
+            totalRecall = totalRecall/numOfFolds;
+            totalF1measure = totalF1measure/numOfFolds;
+        }
 
         System.out.println("Accuracy = " + totalAccuracy);
         System.out.println("Precision = " + totalPrecision);
