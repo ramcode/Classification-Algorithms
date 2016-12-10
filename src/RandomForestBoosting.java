@@ -13,7 +13,7 @@ import java.util.stream.IntStream;
 /**
  * Created by VenkataRamesh on 12/7/2016.
  */
-public class RandomForest {
+public class RandomForestBoosting {
 
     private int numOfFolds;
     private String fileName;
@@ -28,14 +28,14 @@ public class RandomForest {
     List<Integer> ignoreList = null;
     Map<String, Double> map = null;
 
-    public RandomForest(int numOfFolds, String fileName, int randAttrVal) {
+    public RandomForestBoosting(int numOfFolds, String fileName, int randAttrVal) {
 
         this.numOfFolds = numOfFolds;
         this.fileName = fileName;
         this.randAttrVal = randAttrVal;
     }
 
-    public double[][] readDataSet(String path, String fileName){
+    public double[][] readDataSet(String path, String fileName) {
         Path filePath = null;
         ignoreList = new ArrayList<Integer>();
         try {
